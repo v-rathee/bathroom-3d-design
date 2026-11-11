@@ -45,6 +45,7 @@ test('GitHub Pages root entry point loads its relative script and stylesheet', a
   expect((await snapshot(page)).geometry.matches).toBe(true);
   expect(await page.locator('body').evaluate(element => getComputedStyle(element).fontFamily)).toContain('Segoe UI');
   await expect(page.locator('link[rel="license"]')).toHaveAttribute('href', 'THIRD-PARTY-NOTICES.txt');
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /^data:image\/svg\+xml,/);
   expect(errors).toEqual([]);
 });
 
