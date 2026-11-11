@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#263e35">
+  <meta name="description" content="Explore a dimensioned 8 by 4 foot combined bathroom concept in interactive 3D, with fixture details, a floor plan, and clearly labelled design limitations.">
+  <link rel="license" href="THIRD-PARTY-NOTICES.txt">
+  <title>Your Combined Bathroom | Interactive 3D Design</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="masthead">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">B.</span><div><span class="eyebrow">A LITTLE MORE ROOM</span><h1>Your combined bathroom</h1></div></div>
+    <div class="room-stats"><span><strong>8 &times; 4 ft</strong>inside footprint</span><span><strong>32 sq ft</strong>combined floor</span><span><strong>12 ft</strong>ceiling height</span></div>
+    <span class="concept-badge">DESIGN CONCEPT / NOT FOR CONSTRUCTION</span>
+  </header>
+  <main class="workspace">
+    <aside class="sidebar" aria-label="Design details and controls">
+      <div class="intro"><span class="eyebrow">01 / THE PROPOSAL</span><h2>One room.<br>A calmer routine.</h2><p>Compact seated WC on the left. An open shower on the right. Storage up on the wall, not on your floor.</p></div>
+      <nav class="tabs" aria-label="Design information">
+        <button type="button" class="tab active" data-tab="layout" aria-pressed="true">Layout</button>
+        <button type="button" class="tab" data-tab="checks" aria-pressed="false">Checks <span id="check-count"></span></button>
+        <button type="button" class="tab" data-tab="notes" aria-pressed="false">Read first</button>
+      </nav>
+      <section id="panel-layout" class="tab-panel" aria-label="Layout">
+        <div class="section-heading"><h3>Explore your room</h3><span>Click an item</span></div>
+        <div id="item-list" class="item-list"></div>
+        <section class="inspector" aria-live="polite">
+          <span class="eyebrow" id="item-category">SELECTED FIXTURE</span>
+          <h3 id="item-title">Compact Western WC</h3>
+          <p id="item-description"></p>
+          <div id="item-size" class="size-chip"></div>
+        </section>
+        <div class="section-heading"><h3>View options</h3></div>
+        <label class="select-label" for="wall-mode">Walls <select id="wall-mode"><option value="cutaway">Cutaway / see inside</option><option value="full">Full 12-foot height</option><option value="hidden">Hide shell walls</option></select></label>
+        <label class="check-control"><input id="dimensions" type="checkbox" checked><span>3D measurements</span></label>
+        <label class="check-control"><input id="labels" type="checkbox" checked><span>3D fixture labels</span></label>
+        <label class="check-control"><input id="clearances" type="checkbox"><span>Show WC approach space</span></label>
+        <label class="check-control"><input id="old-wall" type="checkbox"><span>Trace the removed partition</span></label>
+        <div class="finish-picker" role="group" aria-label="Tile finish">
+          <span>Finish palette</span><button type="button" class="swatch active" data-finish="sage" aria-label="Sage and limestone" aria-pressed="true"></button><button type="button" class="swatch sand" data-finish="sand" aria-label="Warm sand and ivory" aria-pressed="false"></button>
+        </div>
+        <div class="small-note">Cutaway walls are shortened for visibility. The measured ceiling stays 144 inches; select full height to see the actual proportions.</div>
+      </section>
+      <section id="panel-checks" class="tab-panel" aria-label="Design checks" hidden>
+        <h3>Geometry checked.<br>Site work still needs approval.</h3>
+        <p class="panel-lead">Planning targets are illustrative references, not a local building-code assessment or an accessibility certificate.</p>
+        <div id="checks-summary" class="checks-summary"></div>
+        <div id="check-list"></div>
+      </section>
+      <section id="panel-notes" class="tab-panel notes-panel" aria-label="Assumptions and safety" hidden>
+        <h3>Measured, assumed, unverified.</h3>
+        <h4>Confirmed by you</h4>
+        <ul><li>Inside size: 96 &times; 48 inches.</li><li>Ceiling: 12 feet / 144 inches.</li><li>Original clear widths: 35 and 55.5 inches.</li><li>Both doorways: 29 inches. Retain the right entrance and close the left.</li><li>Replace the squat pan with a seated WC. Plumbing relocation is acceptable.</li><li>Existing washbasin stays outside, between the original doors.</li></ul>
+        <h4>Assumptions you can review</h4>
+        <ul><li>Both rooms have the same 48-inch clear depth.</li><li>Partition is 5.5 inches, inferred from the widths.</li><li>Compact WC: 15 inches wide, 25 inches installed projection, 1 inch behind it.</li><li>Door height is assumed 80 inches. Door is proposed to open outward.</li><li>Doorways are placed at the front-wall ends as interpreted from the sketch. Actual jamb offsets were not measured.</li><li>Outer wall thickness is illustrated as 4 inches, not measured.</li><li>Geyser, bucket, shelves and outside basin sizes are illustrative.</li><li>Finishes are a proposal, not a match to the existing tiles.</li></ul>
+        <h4 class="warning-title">Before any work begins</h4>
+        <p>Have an on-site qualified professional verify the dividing wall and hidden services before approving removal. A plumber must verify the WC outlet, drainage, waterproofing and floor levels. A qualified electrician must review the geyser installation. Verify ventilation and local requirements.</p>
+        <p>The room is an <strong>open wet room</strong>. A dry entrance is not promised. The floor is rendered flat; slopes and construction details are not engineered.</p>
+        <p>The outside floor patch is context only. Corridor dimensions and outward door clearance have not been measured. Do not treat the rendered outside space as available space.</p>
+        <h4>Space gained</h4>
+        <p>Removing the inferred partition recovers about <strong>1.83 sq ft</strong>, bringing the continuous inside floor to 32 sq ft. Removing a wall does not enlarge the outside footprint.</p>
+        <h4>Controls</h4>
+        <p>Mouse: drag to orbit, wheel to zoom, right-drag to pan. Touch: one finger orbits; two fingers zoom/pan. Keyboard: H home, T top, D door, M measurements, Escape clears selection.</p>
+      </section>
+      <div class="sidebar-footer">A measured visualization. Not a demolition, plumbing or electrical drawing.</div>
+    </aside>
+    <section class="stage" aria-label="Interactive bathroom viewer">
+      <div class="stage-toolbar">
+        <div class="view-buttons" role="group" aria-label="Camera presets">
+          <button type="button" class="active" data-view="perspective" aria-pressed="true">3D view</button>
+          <button type="button" data-view="top" aria-pressed="false">Top 3D</button>
+          <button type="button" data-view="inside" aria-pressed="false">Inside</button>
+          <button type="button" data-view="plan" aria-pressed="false">2D plan</button>
+        </div>
+        <div class="action-buttons"><button type="button" id="door-toggle" aria-pressed="true">Door: open</button><button type="button" id="reset-view" title="Reset camera (H)">Reset view</button></div>
+      </div>
+      <div id="canvas-host" class="canvas-host" aria-label="3D model: drag to rotate, scroll to zoom"></div>
+      <div id="plan-host" class="plan-host" hidden></div>
+      <div id="viewer-error" class="viewer-error" role="alert" hidden><h3>The 3D viewer could not start.</h3><p id="viewer-error-text"></p><p>The dimensioned 2D plan is still available using the 2D plan button. Try a current browser with WebGL enabled.</p></div>
+      <div class="stage-caption"><span class="live-dot" aria-hidden="true"></span><span id="view-caption">PROPOSED OPEN WET ROOM</span><span class="caption-secondary" id="wall-caption">Cutaway / ceiling omitted</span></div>
+      <div class="stage-bottom">
+        <div class="viewer-help" id="viewer-help"><strong>Make yourself at home.</strong><span>Drag to rotate &middot; Scroll to zoom &middot; Click a fixture</span></div>
+        <div class="export-buttons"><button type="button" id="save-image">Save image</button><button type="button" id="save-plan">Download plan</button></div>
+      </div>
+      <div id="export-message" class="export-message" role="status" hidden></div>
+    </section>
+  </main>
+  <footer class="project-footer"><span>96 &times; 48 &times; 144 in <span class="footer-divider">/</span> Based on your measurements and photographs</span><span>Verify all dimensions on site before ordering fixtures.</span></footer>
+  <script src="dist/viewer.js" defer></script>
+</body>
+</html>
