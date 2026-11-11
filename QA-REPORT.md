@@ -87,7 +87,8 @@ Environment: isolated headless Microsoft Edge / Chromium on Windows.
     disables image export; the separately labelled 2D plan remains available.
 12. Emulated phone touch rotation and two-finger pinch change the actual camera.
 13. The GitHub Pages root entry point loads its relative stylesheet and compiled
-    script, matches the checked geometry, and links the third-party license notice.
+    script, matches the checked geometry, embeds its tab icon without an external
+    request, and links the third-party license notice.
 
 The Node 26 test environment emits a test-tool deprecation warning about
 `module.register()`. Tests pass; the normal viewer's browser console is clean.
