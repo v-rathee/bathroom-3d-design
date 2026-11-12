@@ -84,13 +84,13 @@ test('wall modes, labels, dimensions, clearances, removed wall and finishes work
   expect((await snapshot(page)).finish).toBe('sage');
 });
 
-test('door is outward opening and every camera preset works', async ({ page }) => {
-  expect((await snapshot(page)).doorAngleDegrees).toBe(90);
+test('door is inward opening and every camera preset works', async ({ page }) => {
+  expect((await snapshot(page)).doorAngleDegrees).toBe(-90);
   await page.locator('#door-toggle').click();
   expect((await snapshot(page)).doorAngleDegrees).toBe(0);
   await expect(page.locator('#door-toggle')).toHaveText('Door: closed');
   await page.locator('#door-toggle').click();
-  expect((await snapshot(page)).doorAngleDegrees).toBe(90);
+  expect((await snapshot(page)).doorAngleDegrees).toBe(-90);
   await page.locator('[data-view="top"]').click();
   expect((await snapshot(page)).camera.type).toBe('OrthographicCamera');
   await page.locator('[data-view="inside"]').click();
@@ -136,9 +136,9 @@ test('real canvas raycasting, wheel zoom, orbit and pan move the actual camera',
 
 test('checks and notes distinguish geometry passes from unverified site safety', async ({ page }) => {
   await page.locator('[data-tab="checks"]').click();
-  await expect(page.locator('.check-row')).toHaveCount(16);
+  await expect(page.locator('.check-row')).toHaveCount(17);
   await expect(page.locator('.check-row.pass')).toHaveCount(7);
-  await expect(page.locator('.check-row.caution')).toHaveCount(3);
+  await expect(page.locator('.check-row.caution')).toHaveCount(4);
   await expect(page.locator('.check-row.unverified')).toHaveCount(6);
   await page.locator('[data-check="electrical"] summary').click();
   await expect(page.locator('[data-check="electrical"] p')).toBeVisible();
@@ -173,7 +173,7 @@ test('PNG and SVG exports download nonempty files with the correct signatures', 
   const pngReady = page.waitForEvent('download');
   await page.locator('#save-image').click();
   const png = await pngReady;
-  expect(png.suggestedFilename()).toBe('Bathroom-perspective.png');
+  expect(png.suggestedFilename()).toBe('Bathroom-comparison-perspective.png');
   await png.saveAs(path.join(root, 'Preview-3D.png'));
   await page.screenshot({ path: path.join(root, 'Preview-Desktop.png'), fullPage: true });
   const bytes = await readFile(path.join(root, 'Preview-3D.png'));
@@ -182,7 +182,7 @@ test('PNG and SVG exports download nonempty files with the correct signatures', 
   const svgReady = page.waitForEvent('download');
   await page.locator('#save-plan').click();
   const svg = await svgReady;
-  expect(svg.suggestedFilename()).toBe('Bathroom-dimensioned-plan.svg');
+  expect(svg.suggestedFilename()).toBe('Bathroom-comparison-plan.svg');
   expect(await svg.failure()).toBeNull();
 });
 
@@ -214,6 +214,15 @@ test('desktop, tablet and phone layouts fit without horizontal overflow', async 
     await expect(page.locator('[data-view="plan"]')).toBeVisible();
     await page.locator('[data-view="plan"]').click();
     await expect(page.locator('#plan-host svg')).toBeVisible();
+    await expect(page.locator('#existing-plan-host svg')).toBeVisible();
+    const panes = (await snapshot(page)).viewports;
+    expect(panes.existing.width).toBe(panes.proposed.width);
+    expect(panes.existing.height).toBe(panes.proposed.height);
+    if (panes.stacked) {
+      expect(panes.proposed.top).toBeGreaterThan(panes.existing.top + panes.existing.height);
+    } else {
+      expect(panes.proposed.left).toBeGreaterThan(panes.existing.left + panes.existing.width);
+    }
     await page.locator('#reset-view').click();
   }
   await page.setViewportSize({ width: 390, height: 844 });
@@ -235,6 +244,134 @@ test('WebGL failure shows an explicit error and keeps the 2D plan available', as
   await page.locator('[data-view="plan"]').click();
   await expect(page.locator('#plan-host svg')).toBeVisible();
   await expect(page.locator('#viewer-error')).toBeHidden();
+  await expect(page.locator('#existing-plan-host svg')).toBeVisible();
+});
+
+test('comparison defaults to actual separate rooms with confirmed inward hinges and equal-scale panes', async ({ page }) => {
+  const state = await snapshot(page);
+  expect(state.comparison).toBe(true);
+  expect(state.baselineVariant).toBe('current');
+  expect(state.visible.existingCurrent).toBe(true);
+  expect(state.visible.existingWestern).toBe(false);
+  expect(state.geometry.partition).toEqual({ x: 35, width: 5.5, depth: 48 });
+  expect(state.geometry.existingPan.width).toBe(20);
+  expect(state.geometry.existingPan.depth).toBe(24);
+  expect(state.existingToiletDoorAngleDegrees).toBe(90);
+  expect(state.doorTips.proposed).toEqual({ x: 96, d: 29 });
+  expect(state.doorTips.existingToilet.x).toBeCloseTo(0);
+  expect(state.doorTips.existingToilet.d).toBeCloseTo(29);
+  expect(state.viewports.existing.width).toBe(state.viewports.proposed.width);
+  expect(state.viewports.existing.height).toBe(state.viewports.proposed.height);
+  await expect(page.locator('#existing-layout')).toHaveValue('current');
+  await expect(page.locator('#retrofit-frame')).toBeDisabled();
+});
+
+test('separate Western WC exposes full-sweep collision and a checked intermediate-angle highlight', async ({ page }) => {
+  await page.locator('#existing-layout').selectOption('western');
+  let state = await snapshot(page);
+  expect(state.separate.fullSweepConflict).toBe(true);
+  expect(state.separate.currentAngleConflict).toBe(false);
+  expect(state.visible.existingWestern).toBe(true);
+  await page.locator('#door-angle').fill('55');
+  state = await snapshot(page);
+  expect(state.doorAngle).toBe(55);
+  expect(state.separate.currentAngleConflict).toBe(true);
+  expect(state.visible.doorClashHighlight).toBe(true);
+  expect(state.doorTips.existingToilet.x).toBeCloseTo(29 * Math.cos(55 * Math.PI / 180));
+  expect(state.doorTips.existingToilet.d).toBeCloseTo(29 * Math.sin(55 * Math.PI / 180));
+  await expect(page.locator('#retrofit-warning')).toContainText('not reverse');
+  await page.locator('#retrofit-frame').check();
+  state = await snapshot(page);
+  expect(state.separate.frameChangeRequired).toBe(true);
+  expect(state.separate.fullSweepConflict).toBe(false);
+  expect(state.visible.doorClashHighlight).toBe(false);
+  expect(state.existingToiletDoorAngleDegrees).toBeCloseTo(-55);
+  expect(state.doorAngleDegrees).toBeCloseTo(-55);
+  await expect(page.locator('#existing-note')).toContainText('frame work');
+  await page.locator('#existing-layout').selectOption('current');
+  expect((await snapshot(page)).frameChange).toBe(false);
+  await expect(page.locator('#retrofit-frame')).not.toBeChecked();
+});
+
+test('inside basin changes real geometry, shelf, mirror, inspector and plan without altering current rooms', async ({ page }) => {
+  await page.locator('#basin-placement').selectOption('inside');
+  const state = await snapshot(page);
+  expect(state.geometry.matches).toBe(true);
+  expect(state.geometry.basin).toMatchObject({ left: 34.5, width: 18, depth: 12, front: 36, back: 48 });
+  expect(state.geometry.shelf).toMatchObject({ left: 4, right: 24 });
+  expect(state.visible.insideBasin).toBe(true);
+  expect(state.visible.outsideBasin).toBe(false);
+  expect(state.visible.existingBasin).toBe(true);
+  expect(state.visible.mirror).toBe(true);
+  expect(state.measurements.wcFrontClearance).toBe(22);
+  expect(state.measurements.wcSideClearance).toBe(17);
+  await page.locator('.item-card[data-item="basin"]').click();
+  await expect(page.locator('#item-title')).toHaveText('Compact inside handbasin');
+  await expect(page.locator('#item-description')).toContainText('Existing basin dimensions are unknown');
+  await page.locator('[data-tab="checks"]').click();
+  await expect(page.locator('.check-row')).toHaveCount(19);
+  await expect(page.locator('[data-check="basin-product"]')).toHaveClass(/unverified/);
+  await page.locator('[data-tab="layout"]').click();
+  await page.locator('#clearances').check();
+  await page.locator('[data-view="plan"]').click();
+  await expect(page.locator('#plan-host [data-basin-location]')).toHaveAttribute('data-basin-location', 'inside');
+  await expect(page.locator('#existing-plan-host [data-basin-location]')).toHaveAttribute('data-basin-location', 'outside');
+  await expect(page.locator('#plan-host')).toContainText('24 x 21 in approach');
+  await page.locator('#basin-placement').selectOption('outside');
+  expect((await snapshot(page)).geometry.shelf.left).toBe(38);
+  expect((await snapshot(page)).visible.mirror).toBe(false);
+});
+
+test('both plan viewports parse as valid SVG without duplicate marker IDs', async ({ page }) => {
+  await page.locator('[data-view="plan"]').click();
+  const valid = await page.evaluate(() => {
+    const svgs = [...document.querySelectorAll('.plan-host svg')];
+    const ids = svgs.flatMap(svg => [...svg.querySelectorAll('[id]')].map(element => element.id));
+    return svgs.length === 2 && ids.length === new Set(ids).size
+      && svgs.every(svg => !new DOMParser().parseFromString(svg.outerHTML, 'image/svg+xml').querySelector('parsererror'));
+  });
+  expect(valid).toBe(true);
+  await expect(page.locator('#existing-plan-host')).toContainText('INDIAN WC');
+  await page.locator('#compare-toggle').click();
+  await expect(page.locator('#existing-plan-host')).toBeHidden();
+  await expect(page.locator('#existing-heading')).toBeHidden();
+  await expect(page.locator('#plan-host')).toBeVisible();
+  await page.locator('#compare-toggle').click();
+  await expect(page.locator('#existing-plan-host')).toBeVisible();
+});
+
+test('current mesh can be picked separately and decision guide opens the real clash view', async ({ page }) => {
+  await page.locator('[data-view="top"]').click();
+  const point = (await snapshot(page)).existingScreenPoints['existing-toilet'];
+  await page.locator('#canvas-host canvas').click({ position: { x: point.x, y: point.y + 10 } });
+  expect((await snapshot(page)).selected).toBe('existing-toilet');
+  await expect(page.locator('#item-title')).toHaveText('Current Indian / squat pan');
+  await page.locator('[data-tab="decision"]').click();
+  await expect(page.locator('#panel-decision')).toContainText('does not');
+  await page.locator('#show-door-clash').click();
+  const state = await snapshot(page);
+  expect(state.baselineVariant).toBe('western');
+  expect(state.view).toBe('top');
+  expect(state.doorAngle).toBe(55);
+  expect(state.visible.doorClashHighlight).toBe(true);
+});
+
+test('inside basin and separate WC comparison exports the selected options to SVG', async ({ page }) => {
+  await page.locator('#existing-layout').selectOption('western');
+  await page.locator('#basin-placement').selectOption('inside');
+  await page.locator('#door-angle').fill('55');
+  const ready = page.waitForEvent('download');
+  await page.locator('#save-plan').click();
+  const download = await ready;
+  expect(download.suggestedFilename()).toBe('Bathroom-comparison-plan.svg');
+  const stream = await download.createReadStream();
+  const chunks = [];
+  for await (const chunk of stream) chunks.push(chunk);
+  const svg = Buffer.concat(chunks).toString('utf8');
+  expect(svg).toContain('Keep separate + seated WC');
+  expect(svg).toContain('18 x 12 in basin INSIDE');
+  expect(svg).toContain('data-door-angle="55"');
+  expect(svg).toContain('FULL SWEEP overlaps WC');
 });
 
 test('phone touch orbit and two-finger pinch operate the real camera', async ({ page }) => {
