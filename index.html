@@ -5,26 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#263e35">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23263e35'/%3E%3Ctext x='32' y='46' text-anchor='middle' font-family='Georgia,serif' font-size='46' fill='%23f7f6f0'%3EB%3C/text%3E%3C/svg%3E">
-  <meta name="description" content="Explore a dimensioned 8 by 4 foot combined bathroom concept in interactive 3D, with fixture details, a floor plan, and clearly labelled design limitations.">
+  <meta name="description" content="Compare the existing separate toilet and bathroom, a seated-WC retrofit, and a combined 8 by 4 foot wet room with an optional compact inside basin. Linked 3D views, inward door swings and checked plans.">
   <link rel="license" href="THIRD-PARTY-NOTICES.txt">
-  <title>Your Combined Bathroom | Interactive 3D Design</title>
+  <title>Your Bathroom, Compared | Interactive 3D Design</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="masthead">
-    <div class="brand"><span class="brand-mark" aria-hidden="true">B.</span><div><span class="eyebrow">A LITTLE MORE ROOM</span><h1>Your combined bathroom</h1></div></div>
-    <div class="room-stats"><span><strong>8 &times; 4 ft</strong>inside footprint</span><span><strong>32 sq ft</strong>combined floor</span><span><strong>12 ft</strong>ceiling height</span></div>
+    <div class="brand"><span class="brand-mark" aria-hidden="true">B.</span><div><span class="eyebrow">A DECISION, NOT JUST A RENDER</span><h1>Your bathroom, compared</h1></div></div>
+    <div class="room-stats"><span><strong>8 &times; 4 ft</strong>overall inside footprint</span><span><strong>30.17 &rarr; 32 sq ft</strong>separate &rarr; combined floor</span><span><strong>12 ft</strong>ceiling height</span></div>
     <span class="concept-badge">DESIGN CONCEPT / NOT FOR CONSTRUCTION</span>
   </header>
   <main class="workspace">
     <aside class="sidebar" aria-label="Design details and controls">
-      <div class="intro"><span class="eyebrow">01 / THE PROPOSAL</span><h2>One room.<br>A calmer routine.</h2><p>Compact seated WC on the left. An open shower on the right. Storage up on the wall, not on your floor.</p></div>
+      <div class="intro"><span class="eyebrow">01 / COMPARE THE OPTIONS</span><h2>Keep the wall?<br>See the trade-offs.</h2><p>Compare the current rooms or a seated-WC retrofit on the left with the combined room on the right. Both existing doors open inward.</p></div>
       <nav class="tabs" aria-label="Design information">
         <button type="button" class="tab active" data-tab="layout" aria-pressed="true">Layout</button>
         <button type="button" class="tab" data-tab="checks" aria-pressed="false">Checks <span id="check-count"></span></button>
+        <button type="button" class="tab" data-tab="decision" aria-pressed="false">Decision</button>
         <button type="button" class="tab" data-tab="notes" aria-pressed="false">Read first</button>
       </nav>
       <section id="panel-layout" class="tab-panel" aria-label="Layout">
+        <div class="gain-card"><strong>+1.83 sq ft</strong><span>About 6.1% more clear floor, not twice the space. The bigger benefit is one continuous room.</span></div>
+        <div id="retrofit-warning" class="retrofit-warning" role="status" hidden></div>
         <div class="section-heading"><h3>Explore your room</h3><span>Click an item</span></div>
         <div id="item-list" class="item-list"></div>
         <section class="inspector" aria-live="polite">
@@ -35,6 +38,8 @@
         </section>
         <div class="section-heading"><h3>View options</h3></div>
         <label class="select-label" for="wall-mode">Walls <select id="wall-mode"><option value="cutaway">Cutaway / see inside</option><option value="full">Full 12-foot height</option><option value="hidden">Hide shell walls</option></select></label>
+        <label class="angle-label" for="door-angle"><span>Door opening angle</span><output id="angle-value" for="door-angle">90 degrees</output><input id="door-angle" type="range" min="0" max="90" step="1" value="90"></label>
+        <label class="check-control frame-control"><input id="retrofit-frame" type="checkbox" disabled><span>Explore a reworked outward toilet door<br><small>Separate Western-WC view only. Not a hinge swap or an approved site solution.</small></span></label>
         <label class="check-control"><input id="dimensions" type="checkbox" checked><span>3D measurements</span></label>
         <label class="check-control"><input id="labels" type="checkbox" checked><span>3D fixture labels</span></label>
         <label class="check-control"><input id="clearances" type="checkbox"><span>Show WC approach space</span></label>
@@ -42,7 +47,7 @@
         <div class="finish-picker" role="group" aria-label="Tile finish">
           <span>Finish palette</span><button type="button" class="swatch active" data-finish="sage" aria-label="Sage and limestone" aria-pressed="true"></button><button type="button" class="swatch sand" data-finish="sand" aria-label="Warm sand and ivory" aria-pressed="false"></button>
         </div>
-        <div class="small-note">Cutaway walls are shortened for visibility. The measured ceiling stays 144 inches; select full height to see the actual proportions.</div>
+        <div class="small-note">Cutaway walls are shortened and doors translucent for visibility, not proposed as glass. The ceiling stays 144 inches. Full height restores solid doors. Views share one camera and the same scale.</div>
       </section>
       <section id="panel-checks" class="tab-panel" aria-label="Design checks" hidden>
         <h3>Geometry checked.<br>Site work still needs approval.</h3>
@@ -50,24 +55,33 @@
         <div id="checks-summary" class="checks-summary"></div>
         <div id="check-list"></div>
       </section>
+      <section id="panel-decision" class="tab-panel notes-panel" aria-label="Practical decision guide" hidden>
+        <h3>What would actually improve?</h3>
+        <div class="decision-card"><h4>A. Keep separate + compact Western WC</h4><p>Usually the first lower-disruption option to investigate: retain the partition and bathing room. The selected 25-inch WC has 22 inches in front, but its envelope overlaps the current inward door sweep. It is <strong>not shown as a drop-in replacement</strong>.</p><p>Get the actual installed WC outline, outlet position and full door sweep checked. A different product or a door/frame alteration may work. That does not mean every Western WC is impossible.</p><button type="button" id="show-door-clash">Show the door conflict at 55 degrees</button></div>
+        <div class="decision-card"><h4>B. Combine, basin stays outside</h4><p>Wider shared movement space and no narrow toilet-room entrance. The left doorway is closed; the right inward door stays. Gain only 1.83 sq ft of floor, but the space can feel less confined.</p><p>More construction, waterproofing and plumbing review. Only one private room is available, and shower spray can reach the WC/entry.</p></div>
+        <div class="decision-card"><h4>C. Combine + compact inside basin</h4><p>An assumed <strong>18 x 12-inch wall-hung basin on the back wall</strong> fits the planning envelopes. The WC still has 22 inches in front and 17 inches from its centre to the basin edge. Storage moves above the WC and a small mirror is shown.</p><p>The actual existing basin is unmeasured. This is a compact handwashing option, not proof that your current basin can be moved inside. The floor remains a shared wet room.</p></div>
+        <h4>My practical order of investigation</h4><p>First price and verify the separate-room WC/door solution. If that cannot work reasonably, or one continuous room matters more than simultaneous use, the combined layout becomes more attractive. Do not remove the partition just for an assumed large area gain.</p>
+        <h4>The chokhat matters</h4><p>Changing left/right hinges does <strong>not</strong> change the direction allowed by an inward-only frame. Reversing the swing needs suitable frame/door work and outside clearance. A sliding door needs a usable parking run; the outside basin may obstruct that run. Neither alternative is automatically feasible.</p>
+        <h4>Compare like with like</h4><p>The current reconstruction and proposed finishes are illustrative, not a quotation or exact product survey. New tiles, a shower, geyser and storage can also be added while keeping the wall; they are not benefits caused by combining the rooms.</p>
+      </section>
       <section id="panel-notes" class="tab-panel notes-panel" aria-label="Assumptions and safety" hidden>
         <h3>Measured, assumed, unverified.</h3>
         <h4>Confirmed by you</h4>
-        <ul><li>Inside size: 96 &times; 48 inches.</li><li>Ceiling: 12 feet / 144 inches.</li><li>Original clear widths: 35 and 55.5 inches.</li><li>Both doorways: 29 inches. Retain the right entrance and close the left.</li><li>Replace the squat pan with a seated WC. Plumbing relocation is acceptable.</li><li>Existing washbasin stays outside, between the original doors.</li></ul>
+        <ul><li>Inside size: 96 &times; 48 inches; ceiling 12 feet / 144 inches.</li><li>Original clear widths: 35 and 55.5 inches. Both doorways: 29 inches.</li><li>Standing outside facing the doors: toilet hinges LEFT, bathroom hinges RIGHT. Both open INWARD.</li><li>The existing frames (chokhat) are inward-only. A hinge-side change alone will not reverse the swing.</li><li>The existing basin is outside, between the doors; its dimensions are unknown.</li><li>Plumbing relocation is acceptable in the combined concept. No demolition has been approved.</li></ul>
         <h4>Assumptions you can review</h4>
-        <ul><li>Both rooms have the same 48-inch clear depth.</li><li>Partition is 5.5 inches, inferred from the widths.</li><li>Compact WC: 15 inches wide, 25 inches installed projection, 1 inch behind it.</li><li>Door height is assumed 80 inches. Door is proposed to open outward.</li><li>Doorways are placed at the front-wall ends as interpreted from the sketch. Actual jamb offsets were not measured.</li><li>Outer wall thickness is illustrated as 4 inches, not measured.</li><li>Geyser, bucket, shelves and outside basin sizes are illustrative.</li><li>Finishes are a proposal, not a match to the existing tiles.</li></ul>
+        <ul><li>Both rooms have the same 48-inch clear depth. Partition thickness is inferred as 5.5 inches.</li><li>Seated WC: 15 inches wide, 25 inches installed projection, 1 inch behind it.</li><li>Doors: 80 inches high, 1-inch bottom clearance and 1.2-inch leaf thickness are illustrative. Jamb offsets were not measured.</li><li>The current squat-pan size, cistern, taps and bucket placement are reconstructed approximately from the photos, not surveyed as-built geometry.</li><li>Outer wall thickness is illustrated as 4 inches. The optional inside basin is an assumed 18 x 12-inch product, with a 24 x 21-inch planning approach.</li><li>Other fixture sizes, mirror and finishes are illustrative. Floor and side-clearance targets are planning references, not local-code certification.</li></ul>
         <h4 class="warning-title">Before any work begins</h4>
         <p>Have an on-site qualified professional verify the dividing wall and hidden services before approving removal. A plumber must verify the WC outlet, drainage, waterproofing and floor levels. A qualified electrician must review the geyser installation. Verify ventilation and local requirements.</p>
         <p>The room is an <strong>open wet room</strong>. A dry entrance is not promised. The floor is rendered flat; slopes and construction details are not engineered.</p>
-        <p>The outside floor patch is context only. Corridor dimensions and outward door clearance have not been measured. Do not treat the rendered outside space as available space.</p>
+        <p>The retained bathroom door opens inward in both views. The separate-Western outward-door checkbox is an <strong>alteration proposal</strong>, not the existing setup. Corridor space and slider parking space are unmeasured; the outside floor patch is context only.</p>
         <h4>Space gained</h4>
-        <p>Removing the inferred partition recovers about <strong>1.83 sq ft</strong>, bringing the continuous inside floor to 32 sq ft. Removing a wall does not enlarge the outside footprint.</p>
+        <p>Existing net clear floor: <strong>30.17 sq ft</strong>. Combined floor: <strong>32 sq ft</strong>. Partition removal recovers <strong>1.83 sq ft, about 6.1%</strong>. It creates shared width, not a doubled footprint. Keeping separate preserves simultaneous toilet/bath use.</p>
         <h4>Controls</h4>
         <p>Mouse: drag to orbit, wheel to zoom, right-drag to pan. Touch: one finger orbits; two fingers zoom/pan. Keyboard: H home, T top, D door, M measurements, Escape clears selection.</p>
       </section>
       <div class="sidebar-footer">A measured visualization. Not a demolition, plumbing or electrical drawing.</div>
     </aside>
-    <section class="stage" aria-label="Interactive bathroom viewer">
+    <section class="stage comparing" aria-label="Interactive bathroom viewer">
       <div class="stage-toolbar">
         <div class="view-buttons" role="group" aria-label="Camera presets">
           <button type="button" class="active" data-view="perspective" aria-pressed="true">3D view</button>
@@ -75,12 +89,15 @@
           <button type="button" data-view="inside" aria-pressed="false">Inside</button>
           <button type="button" data-view="plan" aria-pressed="false">2D plan</button>
         </div>
-        <div class="action-buttons"><button type="button" id="door-toggle" aria-pressed="true">Door: open</button><button type="button" id="reset-view" title="Reset camera (H)">Reset view</button></div>
+        <div class="action-buttons"><button type="button" id="compare-toggle" aria-pressed="true">Compare: on</button><button type="button" id="door-toggle" aria-pressed="true">Door: open</button><button type="button" id="reset-view" title="Reset camera (H)">Reset view</button></div>
       </div>
       <div id="canvas-host" class="canvas-host" aria-label="3D model: drag to rotate, scroll to zoom"></div>
       <div id="plan-host" class="plan-host" hidden></div>
+      <div id="existing-plan-host" class="plan-host" hidden></div>
+      <div id="existing-heading" class="pane-heading"><span class="eyebrow">A / RETAIN THE PARTITION</span><label for="existing-layout">Left comparison <select id="existing-layout"><option value="current">Current / Indian WC</option><option value="western">Separate / seated WC test fit</option></select></label><p id="existing-note"></p></div>
+      <div id="proposed-heading" class="pane-heading"><span class="eyebrow">B / COMBINE THE ROOMS</span><label for="basin-placement">Basin location <select id="basin-placement"><option value="outside">Keep outside</option><option value="inside">Compact inside / 18 x 12 in</option></select></label><p id="proposed-note"></p></div>
       <div id="viewer-error" class="viewer-error" role="alert" hidden><h3>The 3D viewer could not start.</h3><p id="viewer-error-text"></p><p>The dimensioned 2D plan is still available using the 2D plan button. Try a current browser with WebGL enabled.</p></div>
-      <div class="stage-caption"><span class="live-dot" aria-hidden="true"></span><span id="view-caption">PROPOSED OPEN WET ROOM</span><span class="caption-secondary" id="wall-caption">Cutaway / ceiling omitted</span></div>
+      <div class="stage-caption"><span class="live-dot" aria-hidden="true"></span><span id="view-caption">LINKED VIEWS / SAME CAMERA AND SCALE</span><span class="caption-secondary" id="wall-caption">Cutaway / translucent doors for viewing</span></div>
       <div class="stage-bottom">
         <div class="viewer-help" id="viewer-help"><strong>Make yourself at home.</strong><span>Drag to rotate &middot; Scroll to zoom &middot; Click a fixture</span></div>
         <div class="export-buttons"><button type="button" id="save-image">Save image</button><button type="button" id="save-plan">Download plan</button></div>

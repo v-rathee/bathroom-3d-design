@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-20 -20 138 112" role="img" aria-label="Combined bathroom, basin inside: 96 x 48 inches">
+    <title>Combined bathroom, basin inside: 96 x 48 inches</title><desc>Right-hinged 29-inch door retained opening inward. Compact WC has 22-inch front clearance. Optional inside basin is an assumed 18 x 12-inch product, not a measured existing fixture.</desc>
+    <defs><pattern id="combined-inside-tiles" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#eee9de"/><path d="M12 0H0V12" fill="none" stroke="#d6cdbd" stroke-width=".25"/></pattern>
+    <marker id="combined-inside-arrow" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto-start-reverse"><path d="M5 0L0 2.5L5 5" fill="none" stroke="#50675f" stroke-width=".7"/></marker></defs>
+    <rect x="-20" y="-20" width="138" height="112" fill="#faf8f1"/>
+    <g font-family="Arial,sans-serif" fill="#263e35" font-size="3">
+    <rect width="96" height="48" fill="url(#combined-inside-tiles)"/>
+    <rect x="60" y="0" width="36" height="36" fill="#b9d1c5" fill-opacity=".72" stroke="#688b7b" stroke-dasharray="1.5 1"/>
+    <rect x="2.5" y="26" width="30" height="22" fill="#a2c2d7" fill-opacity=".25" stroke="#7092a8" stroke-dasharray="1 1"/><text x="34" y="38" font-size="2.8">22 in front</text>
+    <rect x="31.5" y="12" width="24" height="21" fill="#c3d7e2" fill-opacity=".32" stroke="#7092a8" stroke-dasharray="1 1"/><text x="43.5" y="30" text-anchor="middle" font-size="2.5">24 x 21 in approach</text>
+    
+    <path d="M0 48V0H96V48M0 48H67" fill="none" stroke="#344b41" stroke-width="1.5"/>
+    <path d="M0 48H29" stroke="#be9165" stroke-width="1.5"/>
+    <g data-item="toilet"><title>Compact seated WC: 15 x 25 inches; 22-inch front clearance</title>
+    <rect x="10" y="1" width="15" height="5.5" rx="1" fill="#fffdf8" stroke="#727e76" stroke-width=".4"/>
+    <ellipse cx="17.5" cy="16" rx="7.4" ry="10" fill="#fffdf8" stroke="#727e76" stroke-width=".4"/>
+    <ellipse cx="17.5" cy="16" rx="4.6" ry="6.8" fill="#d5ddda"/>
+    <text x="17.5" y="31" text-anchor="middle" font-weight="bold">SEATED WC</text></g><text x="78" y="15" text-anchor="middle" font-weight="bold">OPEN SHOWER</text>
+    <text x="78" y="20" text-anchor="middle">36 x 36 in</text>
+    <rect x="63" y="1" width="30" height="1.5" rx=".5" fill="#5b6860"/>
+    <circle cx="89" cy="9" r="5.5" fill="#f3e5c4" stroke="#ac8d52" stroke-width=".4"/>
+    <rect x="4" y="0" width="20" height="7" fill="#b7a785" fill-opacity=".35" stroke="#9b8e70" stroke-dasharray="1 1"/>
+    
+    <g data-basin-location="inside">
+    <rect x="34.5" y="0" width="18" height="12" rx="2" fill="#fffdf8" stroke="#8a9990" stroke-width=".5"/>
+    <ellipse cx="43.5" cy="6" rx="6.3" ry="3.5999999999999996" fill="#d5ddda"/>
+    <text x="43.5" y="18" text-anchor="middle" font-size="2.6">18 x 12 in basin INSIDE</text>
+    <text x="43.5" y="23" text-anchor="middle" font-size="2.4">Mirror / geyser above</text>
+  </g><path d="M67 48A29 29 0 0 1 96 19" fill="none" stroke="#9f773e" stroke-dasharray="1.2 1" stroke-width=".5"/>
+    <path data-door-key="bathroom" data-door-state="open" data-door-direction="inward" data-door-hinge="right" data-door-angle="90" d="M96 48L96 19" stroke="#9f773e" stroke-width="1.2"/>
+    <text x="14.5" y="56" text-anchor="middle" fill="#956d3f" font-size="2.5">Old door closed</text>
+    <text x="0" y="77" font-size="2.5">Right door retained inward. Basin inside; actual basin size unmeasured.</text><g fill="none" stroke="#50675f" stroke-width=".35">
+    <path d="M0 -3V-13M96 -3V-13M-3 0H-13M-3 48H-13M67 81V87M96 81V87"/>
+    <path d="M0 -10H96" marker-start="url(#combined-inside-arrow)" marker-end="url(#combined-inside-arrow)"/>
+    <path d="M-10 0V48" marker-start="url(#combined-inside-arrow)" marker-end="url(#combined-inside-arrow)"/>
+    <path d="M67 84H96" marker-start="url(#combined-inside-arrow)" marker-end="url(#combined-inside-arrow)"/>
+    </g><rect x="35" y="-13" width="26" height="5" fill="#faf8f1"/>
+    <text x="48" y="-9" text-anchor="middle" font-weight="bold">96 in / 8 ft</text>
+    <text x="-13" y="24" text-anchor="middle" transform="rotate(-90 -13 24)" font-weight="bold">48 in / 4 ft</text>
+    <rect x="71" y="81" width="21" height="5" fill="#faf8f1"/>
+    <text x="81.5" y="85" text-anchor="middle">29 in entry</text>
+    <text x="0" y="89" font-size="2.5">CONCEPT ONLY - verify structure, drainage, electrics and actual fixture sizes on site.</text>
+    </g></svg>
