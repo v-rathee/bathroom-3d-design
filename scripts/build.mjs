@@ -2,7 +2,7 @@ import { build } from 'esbuild';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { planSvg } from '../src/layout.js';
+import { planSvg, comparisonSvg } from '../src/layout.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const output = path.join(root, 'dist');
@@ -30,6 +30,10 @@ await Promise.all([
   writeFile(path.join(output, 'viewer.js'), js),
   writeFile(path.join(root, 'Bathroom-3D.html'), standalone),
   writeFile(path.join(root, 'Bathroom-dimensioned-plan.svg'), planSvg()),
+  writeFile(path.join(root, 'Bathroom-existing-plan.svg'), planSvg({ scenario: 'current' })),
+  writeFile(path.join(root, 'Bathroom-separate-western-plan.svg'), planSvg({ scenario: 'western' })),
+  writeFile(path.join(root, 'Bathroom-inside-basin-plan.svg'), planSvg({ basinPlacement: 'inside' })),
+  writeFile(path.join(root, 'Bathroom-comparison-plan.svg'), comparisonSvg()),
   writeFile(path.join(root, 'THIRD-PARTY-NOTICES.txt'), `Three.js\n\n${threeLicense}`),
 ]);
 console.log(`Built offline viewer: ${path.join(root, 'Bathroom-3D.html')}`);
