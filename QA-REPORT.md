@@ -1,196 +1,132 @@
-# Bathroom comparison verification
+# Combined bathroom verification
 
 Date: 2026-11-18
 
-**Model: 34 layout tests passed. Viewer: all 22 browser tests passed.**
+**24 layout tests and 18 browser tests passed.**
 
-These are checks of the digital model and application, not permission to build.
-Demolition, local-code/accessibility compliance, plumbing, waterproofing and
-electrical installation still require qualified on-site verification.
+The viewer is combined-room only, with the washbasin fixed outside. The removed
+alternatives and their obsolete plans/previews are no longer part of the current
+application or portable package. This result is software/model verification,
+not construction or local-code approval.
 
-## 1. Corrections and confirmed inputs
+## 1. Plumber activation fix
 
-The owner clarified that both existing doors open **inward**. Viewed from outside,
-the toilet door is left-hinged and the bathroom door right-hinged. The frames
-(chokhat) are inward-only: changing hinge sides does not reverse their swing.
+The earlier live page reproduced the reported UI gap: selecting the Plumber tab
+opened its notes while the mode remained off. The separate header toggle worked,
+but the tab itself did not enable the overlays.
 
-The former outward-opening combined entry is superseded. Current and combined
-views now retain the right inward bathroom door. Only the labelled separate-WC
-frame-alteration exploration can show an outward toilet door.
+Now:
 
-Room dimensions remain 96 x 48 inches overall, with a 144-inch ceiling, 35-inch
-clear toilet bay, 55.5-inch clear bath bay, inferred 5.5-inch partition and two
-29-inch nominal doorways.
+- The Plumber tab, its view button, the header toggle and `#plumber` URL all activate
+  the actual mode.
+- A green status and pressed header button confirm selection.
+- Switching off hides the overlays, updates the URL to `#design` and returns to Layout.
+- Same-document hash navigation and fresh-page/deep-link loads are tested.
+- Published CSS/JS URLs include content-derived versions. A local HTTP regression
+  test poisons the old unversioned script response and verifies the versioned assets
+  are loaded instead and Plumber activation still works.
+- Initialization errors are surfaced through the existing visible error panel.
 
-The current reconstruction's pan/cistern dimensions and levels, bucket/tap
-placement, outer wall thickness, door height/leaf thickness/bottom gap and jamb
-offsets are illustrative, not surveyed as-built geometry.
+## 2. Geometry and assumed measurements
 
-## 2. Dimensions and actual rendered geometry
-
-| Check | Result |
+| Quantity | Checked value |
 |---|---|
-| Current clear toilet floor | 35 x 48 in / 11.67 sq ft |
-| Current clear bath floor | 55.5 x 48 in / 18.5 sq ft |
-| Total existing clear floor | 30.17 sq ft |
-| Combined clear floor | 32 sq ft |
-| Area recovered | 1.83 sq ft, about 6.1% of existing clear floor |
-| Rendered proposed floor | 96 x 48 in |
-| Rendered retained divider | x = 35; 5.5 in thick; 48 in deep |
-| Rendered compact WC | 15 W x 25 D x 32.5 H in |
-| WC front and back | 22 / 47 in from front inside face |
-| WC front / rear allowance | 22 / 1 in |
-| WC centre to left wall | 17.5 in |
-| Inside basin option | 18 W x 12 D in; left x = 34.5; front d = 36; back d = 48 |
-| WC centre to inside basin edge | 17 in |
-| Basin approach rectangle | 24 W x 21 D in, x = 31.5; d = 15 |
-| Shelf with inside basin | Moved left, x = 4 to 24 in, bottom = 48 in |
-| Seated WC in separate bay | Same 15 x 25 in envelope and 22 in front clearance |
+| Combined inside floor | 96 x 48 in / 32 sq ft |
+| Ceiling | 144 in |
+| Actual rendered WC envelope | 15 W x 25 D x 32.5 H in |
+| WC front/back from front inside face | 22 / 47 in |
+| WC rear allowance | 1 in; total wall-to-front projection 26 in |
+| WC centre to nearest side wall | 17.5 in |
+| Shower planning footprint | 36 x 36 in |
+| Only retained door | Right-hinged, inward, nominal 29 in |
+| Outside basin envelope | 18 W x 14 D in; left X = 39; D = -18 to -4 in |
+| Shelf footprint | X = 38 to 58 in; base 48 in above floor |
+| Plumber tile guide | Actual world-space height 84 in / 7 ft |
 
-Critical checks use actual Three.js bounding boxes, not only input constants.
-The viewer raises a visible error if floor, WC, basin, shelf or partition
-geometry no longer matches the checked plan.
+Critical floor, WC, outside-basin and shelf checks use the built Three.js objects,
+not only the input data. The viewer raises a visible error if those geometry
+checks drift from the plan.
 
-## 3. Full door-sweep analysis
+The existing bath-drain corner is confirmed, but its precise pipe centre, trap,
+invert, size and discharge route remain unverified. The marked rectangle is a
+survey zone, not an actual pipe centre. The WC product/outlet is not selected;
+the heater and its points do not exist now.
 
-The model checks a 29-inch quarter-circle sweep against fixture envelopes, with
-an illustrative 1.2-inch door thickness allowance and overlapping fixture/leaf
-heights. It also checks the door leaf at the selected 0-90 degree angle.
-This avoids declaring a clash simply because an object is in a rectangular
-sweep bounding box, and avoids treating a floor-level pan or overhead heater as
-a raised object intersecting the leaf.
-
-- **Current squat pan:** below the assumed 1-inch door bottom gap; its exact level
-  must be measured. A low pan and a raised WC do not have equivalent door clearance.
-- **Separate seated WC:** full inward sweep overlaps the selected WC planning
-  envelope. A 55-degree view highlights the conflict. Zero and 90 degrees can
-  both look clear without proving the path between them is clear.
-- **Combined right door:** retains right hinge and inward movement; it clears
-  the WC, compact basin and stored bucket envelopes, but shares part of the
-  shower standing area while open. Close it for bathing.
-- **Outward toilet exploration:** only an explicitly labelled frame/door
-  alteration proposal. Outside space, other users and nearby basin are not surveyed.
-  A slider would need its own unobstructed parking run.
-
-The sweep test is an envelope screen, not manufacturer-specific solid-body
-collision certification. A suitable different WC or altered door/frame solution
-may work. The model does not conclude that every Western WC is impossible.
-
-## 4. Layout test suite: 34 passed
+## 3. Layout tests: 24 passed
 
 Run: `npm.cmd test`
 
-Coverage includes:
+Coverage:
 
-- Confirmed dimensions, original widths, unit conversion and actual area gain.
-- Indoor bounds, fixture overlaps, WC front/side and shower planning targets.
-- Detection of longer-WC clearance failures, too-close side positions and floor clashes.
-- Correct inward hinges, full sweep and intermediate-angle conflicts.
-- No false collision from a rectangular bounding-box corner or non-overlapping heights.
-- A frame-change proposal cannot silently alter the existing baseline.
-- Inside-basin placement, shared approach space, retained WC clearances and relocated shelf.
-- Oversized/deeper basin failures and unverified existing-basin reuse.
-- Current, separate-Western, combined and inside-basin plan alternatives.
-- Two equal-sized comparison SVGs with distinct marker IDs and honest area labels.
-- Explicit invalid-input errors, rather than success-shaped defaults.
-- Structural, drainage, waterproofing, electrical and other site checks remain unverified.
-- Plumber P1 distinguishes the owner-confirmed drain corner from unverified pipe centres,
-  WC rough-in and routes; geyser and points are explicitly not existing.
-- Tile quantities use the 84-inch tile band, cap the doorway deduction to that band,
-  identify the assumed door height and exclude outside splashback.
-- Outside basin/mirror sizes remain proposals; indicative service heights are checked.
-- Plumber plan exports identify E1 as a survey zone, not an exact pipe centre.
+- Room/partition-width reconciliation and square-foot conversion.
+- Outside-basin-only and right-inward-door-only layout.
+- Indoor footprint bounds and actual proposed WC clearances.
+- Longer WC, too-close side position, undersized shower, fixture clash and out-of-bounds failures.
+- Retained door endpoints, intermediate angle, full quarter-circle sweep and height filtering.
+- Avoiding rectangular-sweep false positives.
+- Shared shower/bucket/door standing space recorded as a caution.
+- Confirmed versus unverified plumber data and future geyser provision.
+- Seven-foot tile quantities, wastage and doorway deduction limited to the tile band.
+- Illustrative outside basin/mirror sizes and elevated storage.
+- Site safety/compliance never certified by geometry.
+- Single combined plan, outside basin, door state and survey-zone export.
+- Invalid inputs raise explicit errors.
 
-## 5. Browser suite: 22 passed
+## 4. Browser tests: 18 passed
 
 Run: `npm.cmd run test:browser`
 
 Environment: isolated headless Microsoft Edge / Chromium on Windows.
 
-1. Offline standalone renders both scenes with HTTP/HTTPS requests blocked, no
-   application errors, no script leakage and the bundled license preserved.
-2. Pages root entry loads relative CSS/JS and embedded icon with correct geometry.
-3. Seven proposed fixture inspectors work.
-4. Wall modes, measurements, labels, approach overlays, partition trace and finishes work.
-5. Retained door opens inward and all camera/plan presets work.
-6. Real raycasting, wheel zoom, orbit and right-drag pan affect the actual camera.
-7. Combined checks distinguish geometry passes, cautions and site limitations.
-8. Dimensioned SVG parses and reflects optional overlays.
-9. PNG and SVG exports download nonempty files with correct signatures and selected scope.
-10. Keyboard shortcuts work without hijacking focused form controls.
-11. Desktop, tablet and phone layouts fit without horizontal overflow. Existing
-    and combined pane dimensions are equal, side by side or stacked.
-12. WebGL failure is explicit; both plan views remain available.
-13. Current reconstruction, inward hinge directions and actual partition geometry match.
-14. Separate-WC full sweep, 55-degree conflict highlight and labelled outward
-    frame-alteration exploration update correctly.
-15. Inside basin updates real geometry, mirror, shelf, inspector, checks and plan;
-    the current-room outside basin stays unchanged.
-16. Both displayed plan SVGs are valid with no duplicate marker IDs; comparison toggles work.
-17. Current-room mesh picking works; the Decision guide opens the real clash view.
-18. Exported comparison SVG preserves the selected seated-WC, inside-basin and door-angle settings.
-19. Phone touch orbit and two-finger pinch change the actual shared camera.
-20. Plumber mode uses the same scene, keeps the basin outside, displays the actual
-    84-inch world-space tile guide, distinguishes new/unknown services, and exports
-    the drain survey zone.
-21. Outside-basin detail view and printable handover links work; normal comparison
-    remains available.
-22. Printable handover has four valid sheets, valid SVGs, tile quantities and explicit
-    unresolved rough-in/levels.
+1. Standalone viewer renders offline; only the combined layout/outside basin exists,
+   with no comparison controls or inside-basin selector.
+2. Published root uses content-versioned assets, bypasses the deliberately poisoned
+   unversioned script and activates Plumber mode.
+3. All seven fixture inspectors work.
+4. Wall modes, labels, measurements, approach space, removed-wall trace and finishes work.
+5. Right inward door and all camera/plan presets work.
+6. Actual mesh raycasting, wheel zoom, orbit and pan work.
+7. Clicking the Plumber tab activates overlays, the real 84-inch guide and status.
+8. Header on/off works repeatedly, and the tab can reactivate the mode.
+9. Fresh load, reload and same-document `#plumber` / `#design` navigation work.
+10. Tile guide, outside-basin detail and handover links work without an inside-basin option.
+11. The 17 design checks retain 7 geometry passes, 4 cautions and 6 unverified site checks.
+12. One valid SVG plan reflects dimensions, inward door, optional wall trace and survey zone.
+13. PNG/SVG exports contain the combined layout only.
+14. Keyboard shortcuts do not hijack focused form controls.
+15. Layouts at 1440 x 1000, 1024 x 768, 768 x 1024, 390 x 844 and 320 x 740
+    fit without horizontal overflow, with working Plumber controls.
+16. Simulated WebGL failure is explicit; the combined Plumber plan remains available.
+17. Phone touch orbit and two-finger pinch move the real camera.
+18. The four-sheet printable concept retains valid drawings and explicit hold points.
 
-The default outside-basin combined option shows 17 design checks: 7 geometry
-passes, 4 cautions and 6 unverified site checks. The inside-basin option adds a
-geometry approach check and an unverified actual-product/reuse check.
-These design checks are distinct from the 34 unit tests and 22 browser tests.
-
-The Node 26 test tooling may emit a `module.register()` deprecation warning;
-the normal viewer browser console is clean. WebGL-failure QA intentionally
+The design-check counts are separate from the unit/browser test counts.
+The Node 26 tooling may emit a `module.register()` deprecation warning; normal
+application browser checks are clean. The WebGL-failure test intentionally
 exercises a failure path.
 
-## 6. Visual and decision review
-
-Both scenes share one renderer/camera and identical viewport sizes, so the
-same physical room is not misleadingly enlarged in one pane. On narrow screens
-the panes stack. Cutaway walls and divider are shortened and doors translucent
-only for viewing, not proposed as glass; full-height mode restores solid doors.
-The current squat-pan silhouette, retained divider and proposed seated WC are
-distinguishable. A top view and door-angle slider help inspect conflicts.
-
-The outside-basin baseline, compact inside-basin option, shelf relocation,
-shared wet entry and limited 1.83 sq ft area gain are explained in the interface.
-New finishes, a shower or geyser are not attributed to demolition as if they
-could not also be installed while keeping the partition.
-
-## 7. Remaining site checks
-
-- Exact fixture sizes, outlet/rough-in, installed WC shape/projection and full leaf sweep.
-- Actual door dimensions, gaps, hinge offsets, frame construction, clear opening
-  and feasibility of any outward/sliding alternative.
-- Existing basin width/projection and plumbing; optional mirror/shelf/geyser coordination.
-- Divider role, support, hidden services and proposed door infill before demolition.
-- Waste routing, traps, floor falls, threshold containment, slip resistance,
-  waterproofing continuity and flood test.
-- Geyser mounting, service access, electrical zones, protected supply and earthing.
-- Ventilation, local rules and approvals.
-
-The planning references are not local-code certification. The room remains an
-open wet room, the bucket is movable shared-use storage, the rendered floor is
-flat, and no outside corridor area or construction approval is implied.
-
-## 8. Plumber print/PDF checks
+## 5. PDF and print checks
 
 Run: `npm.cmd run handover:pdf`
 
-The generated PDF is verified with a PDF parser to contain exactly four A3 landscape
-pages. Browser print-layout checks verify page content stays above its footer, no
-page overflow, no drawing text outside its SVG, no application errors and no local
-file paths in the document text. The 1:20 plan's SVG viewport is 187.96 x 160.02 mm
-at A3/100%; its 1000-mm calibration bar is 50 mm on paper. Rear and outside-basin
-elevations and service schematics are explicitly not to scale.
+The PDF is parsed to verify exactly four A3 landscape pages. Print-layout checks
+verify page/footer bounds, drawing text inside SVG bounds, valid SVGs, no application
+errors and no local paths in document text. The 1:20 plan's SVG viewport is
+187.96 x 160.02 mm at A3/100%; its 1000-mm calibration bar is 50 mm on paper.
+Elevations and service schematics are explicitly not to scale.
 
-P1 keeps the washbasin outside and records the existing drain at the old bathroom's
-back-left corner. Exact pipe positions, inverts, traps and destination remain
-unverified. The current two taps do not establish an existing hot-water system;
-there is no existing geyser or geyser provision. The PDF includes blank site-record
-fields rather than fictitious installation dimensions. It is for discussion and
-quotation only and does not authorise construction.
+## 6. Construction limitations
+
+The 80-inch door height, 1-inch bottom gap, 1.2-inch leaf thickness, outer-wall
+thickness and fixture products are assumptions. Written dimensions govern.
+Planning targets do not certify local-code compliance or accessibility.
+
+Before work: verify wall role/support/hidden services, door infill, selected WC
+and rough-in, actual basin/corridor clearance, water source/pressure, pipe routes
+and sizing, traps/vents, drainage inverts, floor falls, threshold, waterproofing,
+testing, ventilation and qualified geyser/electrical review.
+
+The room is an open wet room; no dry entry or WC is promised. Floor slopes are
+not engineered in the 3D model. Do not connect WC soil into a bath floor drain.
+The plumber pack is for discussion and quotation, not an instruction to start
+construction.

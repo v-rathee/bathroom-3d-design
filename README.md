@@ -1,226 +1,128 @@
-# Your bathroom, compared
+# Combined bathroom
 
-**[Open the interactive comparison](https://v-rathee.github.io/bathroom-3d-design/)**
-
-**[Open the combined-room plumber mode](https://v-rathee.github.io/bathroom-3d-design/#plumber)**
+**[Open the 3D design](https://v-rathee.github.io/bathroom-3d-design/)**
+&nbsp; | &nbsp;
+**[Open Plumber mode](https://v-rathee.github.io/bathroom-3d-design/#plumber)**
 
 Public source: [v-rathee/bathroom-3d-design](https://github.com/v-rathee/bathroom-3d-design).
-The original room photographs, login data, local dependencies and test caches
-are not published.
+The original room photographs, credentials, diagnostics and local caches are not published.
 
-## What changed in this version
+## One approved concept
 
-The owner clarified that both existing doors open **inward**. Viewed from outside,
-the toilet door is left-hinged and the bathroom door is right-hinged. The existing
-chokhat/frames do not permit simply reversing the swing by changing hinge sides.
-The earlier outward-opening combined-door proposal is superseded.
+The viewer now shows **only the combined room**, with the **washbasin fixed outside**.
+The inside-basin alternative and current-versus-combined comparison have been removed
+from the application, source, plans and portable package.
 
-The viewer now opens with two linked views:
+- Inside footprint: **96 x 48 inches / 8 x 4 ft / 32 sq ft**.
+- Ceiling: **144 inches / 12 ft**.
+- Left: compact seated WC, illustrative **15-inch width x 25-inch body depth plus
+  1-inch rear allowance**, giving 26 inches total wall-to-front projection and
+  22 inches in front.
+- Right: open 36 x 36-inch shower planning area, low bucket tap and movable bucket.
+- Retain the right 29-inch nominal entrance, right-hinged and opening inward.
+- Close the former left doorway and remove the dividing wall only after on-site approval.
+- Outside basin: keep its existing location; illustrative 18 x 14-inch unit,
+  35-inch rim height, proposed 22 x 24-inch mirror and splashback.
 
-- **A: Current separate rooms**, reconstructed from the measured sketch and photos.
-  Keep the partition, the Indian/squat pan, both inward doors and the outside basin.
-  Switch this to **Separate / seated WC test fit** to explore the lower-disruption
-  alternative.
-- **B: Combined room**, with the left doorway infilled, a compact seated WC, the
-  right door still opening inward, and the basin outside or an optional compact
-  basin on the back wall.
+Actual products, rough-ins, door/jamb offsets and final finished-face dimensions
+still need site verification.
 
-Both scenes use the same camera and scale. On narrow screens they stack with
-identical viewport dimensions. The current fixture sizes and exact jamb offsets
-were not surveyed; this is not an exact as-built reconstruction.
+## Controls and Plumber activation
 
-## Open offline
-
-Double-click [Bathroom-3D.html](Bathroom-3D.html) in a current Edge or Chrome
-browser with WebGL enabled. This one file is self-contained: it needs no server,
-internet, npm or additional assets. The Three.js MIT notice is embedded.
-
-## Plumber handover / revision P1
-
-The same viewer now includes a **Plumber** mode, not a separate replacement for
-the 3D comparison. Use the top-right Plumber button or the Plumber tab. This mode
-keeps the basin outside, shows the observed existing drain **survey zone** and
-indicative service-point markers, and adds a 7-foot tile-height guide. An outside
-washbasin detail view shows a proposed mirror and splashback. Return to comparison
-mode normally when finished.
-
-The owner's new site information is recorded explicitly:
-
-- The existing bath drain is at the **back-left corner of the original bathroom**,
-  beside the former partition. Its exact centre, invert, trap, size and discharge
-  route have not been measured.
-- The bath currently has two taps and **no geyser or geyser points**. The illustrated
-  heater and hot-water provision are NEW future work.
-- The WC product, floor/wall outlet and manufacturer rough-in are not selected.
-- The basin stays outside. The illustrated 18 x 14-inch basin, 35-inch rim height,
-  22 x 24-inch mirror and splashback are proposed sizes, not a surveyed existing product.
-
-Give the plumber [Plumber-Concept.pdf](Plumber-Concept.pdf), a four-sheet A3
-landscape concept:
-
-1. Combined-room setting-out plan, 1:20 only when printed A3 at 100%, and fixture
-   envelope schedule. Body dimensions are not soil-pipe rough-in coordinates.
-2. Functional water/drainage schematics, service-point coordination and survey holds.
-   No pipe route, size, invert or floor slope is approved.
-3. Rear-wall and outside-basin elevations; 84-inch tile line and future geyser zone.
-4. Tile quantities, survey records and pre-concealment hold points.
-
-[Plumber-Concept.html](Plumber-Concept.html) is the printable browser version.
-The [plumber plan SVG](Bathroom-plumber-plan.svg) is a quick reference, not a
-substitute for the complete hold-point notes. The PDF has no local file-path
-headers. All construction requires qualified on-site verification and applicable
-local requirements; do not connect WC soil into a bath floor drain.
-
-Inside tiling estimate: 32 sq ft floor, 168 sq ft gross walls to 7 feet, approximately
-151.89 sq ft net walls after a single **assumed 29 x 80-inch doorway**. With 10%
-extra: 35.2 sq ft floor and 167.08 sq ft walls, rounded up to actual boxes.
-External splashback, jamb returns and other extra faces are additional.
-
-## Controls
-
-- Drag either 3D view to rotate both; scroll to zoom; right-drag to pan.
+- Drag to orbit, wheel to zoom, right-drag to pan.
 - Touch: one finger rotates; two fingers zoom and pan.
-- Click fixtures in either view, or use the proposed fixture cards.
-- **3D view**, **Top 3D**, **Inside**, **2D plan** switch the shared camera/mode.
-- **Compare** shows both options or just the combined room.
-- The left selector switches the existing/current and separate-Western variants.
-- The right selector moves between outside and **18 x 12-inch compact inside basin**.
-- The door-angle slider inspects the full 0-90 degree movement, not only endpoints.
-- The separate-Western outward-door checkbox is explicitly a **frame/door
-  alteration proposal**, not an existing door setting or a simple hinge swap.
-- **Decision** explains the trade-offs and has a button to show the WC door
-  conflict at 55 degrees.
+- Click a fixture or its sidebar card to inspect the proposal.
+- Camera presets: **3D view**, **Top 3D**, **Room view**, **2D plan**.
 - Wall modes: shortened cutaway, full 144-inch height, or hidden shell.
-- Checkboxes show measurements, labels, approach-space overlays and the removed wall.
-- PNG export includes comparison headings; SVG export includes the selected options.
+- Door button/slider: retained inward door, 0-90 degrees.
+- Checkboxes: measurements, labels, WC approach space and removed-partition trace.
 - Keyboard: H home, T top, D door endpoints, M measurements, Escape clear selection.
 
-If WebGL fails, the page displays the error and disables image export; both 2D
-plans remain available. A plan-only fallback is not reported as successful 3D.
+**Clicking the Plumber tab now actually enables Plumber mode**, rather than just
+opening explanatory notes. The top button also toggles it. A green
+**PLUMBER MODE ACTIVE** status confirms selection. Switching it off returns to Layout.
+The URL fragment `#plumber` enables this mode on load and during same-page navigation;
+`#design` returns to normal design mode.
 
-## Measured space and realistic benefit
+Plumber mode shows indicative service points, the **84-inch / 7-foot tile line**,
+the existing drain **survey zone**, and the outside-basin design detail. These are
+coordination aids, not drilling or pipe-hole coordinates.
 
-| Quantity | Value |
-|---|---|
-| Overall inside footprint, including the partition | 96 x 48 inches / 8 x 4 ft |
-| Ceiling | 144 inches / 12 ft |
-| Current clear toilet bay | 35 x 48 inches / 11.67 sq ft |
-| Current clear bathing bay | 55.5 x 48 inches / 18.5 sq ft |
-| Inferred dividing wall | 5.5 inches thick |
-| Current total clear floor | 30.17 sq ft |
-| Combined clear floor | 32 sq ft |
-| Floor recovered by wall removal | 1.83 sq ft / about 6.1% of current clear floor |
-| Both nominal doorways | 29 inches |
+The owner confirmed the existing bath drain is at the **back-left corner of the
+original bathroom**. Its exact centre, invert, size, trap and destination remain
+unverified. There are two existing bath taps and **no geyser or geyser points**.
+The heater/hot-water provision shown is new future work.
 
-Combining does not double the floor area. Its main advantage is continuous shared
-width, more flexible movement and use of the right entrance instead of the narrow
-toilet entry. Shower, tiles, storage and geyser upgrades can also be done with the
-partition retained; those are not gains caused by combining.
+## Plumber handover
 
-## Can the washbasin go inside?
+**[Download the four-page concept PDF](Plumber-Concept.pdf)** or open
+[the printable browser version](Plumber-Concept.html).
 
-**A shallow handbasin can fit the checked planning envelopes, but the existing
-basin has not been measured.** The option shown is an assumed new/compact product:
+1. Combined-room setting-out plan, 1:20 only at A3/100%, and fixture envelope schedule.
+2. Functional water/drainage schematics, service-point coordination and survey holds.
+3. Rear-wall and outside-basin elevations.
+4. Tile quantities, survey records and pre-concealment hold points.
 
-- 18 inches wide, 12 inches deep, wall-hung on the **back wall**.
-- Left edge 34.5 inches from the left room face; front edge 36 inches from the front.
-- A 24 x 21-inch approach rectangle fits in front without overlapping the WC or
-  shower planning footprints.
-- WC front clearance stays 22 inches. WC centre to basin edge is 17 inches.
-- Shelf moves above the WC; a small mirror is shown above the basin.
-- The geyser remains higher on the rear wall, with mounting, service access and
-  electrical review still required.
+The PDF has four A3 landscape pages and no local-file-path headers. Body dimensions
+are not WC soil-pipe rough-in coordinates. No pipe route, diameter, invert, finished
+level or floor slope is approved by this concept.
 
-This is a compact handwashing basin, not an assurance of comfortable full-size
-washing or grooming. No vanity cabinet is proposed. Approach space is shared
-circulation, not a simultaneous-occupancy claim. Verify the actual basin, taps,
-outlet and product requirements before ordering or reusing the existing basin.
+Inside tile estimate: **32 sq ft floor**, **168 sq ft gross walls** to 7 feet, and
+approximately **151.89 sq ft net walls**, deducting one **assumed 29 x 80-inch doorway**.
+With 10% extra: 35.2 sq ft floor and 167.08 sq ft walls, rounded up to actual boxes.
+External splashback, jamb returns and other extra faces are additional.
 
-## Can the separate toilet be changed to a seated WC?
+## Open offline and export
 
-It is **not automatically impossible**, but this particular WC is **not a verified
-drop-in replacement** with the existing inward door.
+Double-click [Bathroom-3D.html](Bathroom-3D.html) in a current Edge or Chrome
+browser with WebGL enabled. The viewer is self-contained and needs no server,
+internet or Node.js. Its handover links require the adjacent handover files.
+The Three.js MIT notice is embedded.
 
-The selected installed WC envelope is 15 x 25 inches, plus a 1-inch rear allowance.
-In the existing 35 x 48-inch bay it has:
+**Save image** exports the current 3D view as PNG. **Download plan** exports the
+combined SVG, including the survey-zone overlay in Plumber mode.
+If WebGL fails, the error is displayed explicitly and the labelled 2D plan remains available.
 
-- 22 inches in front.
-- 17.5 inches from WC centre to either side wall.
-- A conflict between its raised planning envelope and the **full 29-inch inward
-  toilet-door sweep**, around an intermediate opening angle.
+## Construction limitations
 
-The 90-degree open position looks clear because the door is against the side wall.
-That does not prove it can travel there. The viewer highlights the envelope clash
-at 55 degrees. The existing low squat pan can be below the door leaf; a raised WC
-cannot be assumed to share that clearance.
+This is a discussion/quotation concept, not a local-code, accessibility, structural,
+plumbing or electrical approval.
 
-Actual product shapes, seat height, installed projection, waste outlet, hinge
-offsets and door clear opening need site measurement. A suitable different product
-or door/frame arrangement may work. Reversing the swing needs appropriate frame/door
-work and outside clearance. A sliding alternative needs a usable parking run; the
-outside basin may obstruct it. Neither alteration has been approved by this model.
+- Obtain qualified on-site approval of the dividing wall, hidden services and door infill
+  before demolition.
+- Select the actual WC and verify its installed projection, waste outlet and rough-in.
+- Have the plumber design suitable traps, vents, pipe routes/sizes, levels and drainage.
+  **Do not connect WC soil into a bath floor drain.**
+- Coordinate waterproofing, former wall/door footprints, penetrations, drains, threshold
+  containment, slip resistance and required testing.
+- Have qualified installers review future geyser support, service access, safety arrangements,
+  electrical zones, protected supply and earthing.
+- Check ventilation, actual clear door width, outside basin/corridor clearance and local approvals.
 
-## Practical recommendation
+The combined room remains an **open wet room**: no dry entrance or dry WC is promised.
+The inward door shares shower standing space while open; the bucket must move when
+the full shower area is used. Floors are rendered flat; slopes/levels are not engineered.
+The outside floor patch is context only.
 
-1. First investigate and quote a **separate-room WC retrofit with the real product
-   and full door sweep**, including any necessary frame work. If it is feasible,
-   this is generally the less disruptive option and retains simultaneous use.
-2. If the WC/door retrofit is impractical, or one continuous room matters more than
-   keeping separate use, consider combining. The owner reports simultaneous use
-   is rare, so that particular trade-off is less important here.
-3. Keep the basin outside for maximum uncluttered inside space. Use the compact
-   inside-basin option if handwashing within the room is important and actual
-   products/services verify successfully.
-
-Do not remove the partition just to obtain an assumed large area gain.
-
-## Limits and site approvals
-
-This remains a concept, not a construction drawing or local-code/accessibility
-certificate. The 21-inch WC front reference, 15-inch WC side reference, 30-inch
-shower-side reference, 24 x 21-inch basin approach and 32-inch door preference are
-planning targets, not a determination of applicable local rules.
-
-- A qualified on-site professional must approve wall removal, support, hidden
-  services and door infill before demolition.
-- A plumber must verify the seated-WC outlet/rough-in, traps, pipe routes, floor
-  falls, threshold containment, waterproofing and flood testing.
-- A qualified installer/electrician must review the geyser, mounting, service
-  access, electrical zones, protected supply and earthing.
-- Check ventilation, actual clear door width, hardware and local requirements.
-- The combined room is an **open wet room**: no dry entrance or dry WC is promised.
-  The inward door occupies part of the shower standing area while open; close it
-  for bathing. The bucket must move when the full shower area is used.
-- Floors are rendered flat; slopes/levels are not engineered. The outside floor
-  patch is context, not a measurement of available corridor area.
-
-Door height 80 inches, bottom gap 1 inch, leaf thickness 1.2 inches, outer walls
-4 inches, squat-pan dimensions/level and other fixture sizes are illustrative.
-Both room depths are assumed equal. Jamb offsets remain unmeasured.
-Cutaway side/front walls and the retained divider are shortened and door leaves
-are translucent for visibility, not proposed as glass. Full mode restores solid
-doors and shows the 144-inch shell. Proposed finishes are not product specifications.
+The 80-inch door height, 1-inch bottom gap, 1.2-inch leaf thickness, 4-inch outer
+walls and secondary fixture sizes are assumptions. Cutaway walls are shortened and
+doors translucent for viewing, not proposed as glass; full-height mode restores solid doors.
+Planning references are not a determination of applicable local requirements.
 
 ## Deliverables
 
-- [Bathroom-3D.html](Bathroom-3D.html): offline comparison viewer.
-- [Bathroom-comparison-plan.svg](Bathroom-comparison-plan.svg): same-scale current/combined plans.
-- [Bathroom-existing-plan.svg](Bathroom-existing-plan.svg): current room reconstruction.
-- [Bathroom-separate-western-plan.svg](Bathroom-separate-western-plan.svg): retained wall with WC sweep warning.
-- [Bathroom-inside-basin-plan.svg](Bathroom-inside-basin-plan.svg): compact inside-basin option.
+- [Bathroom-3D.html](Bathroom-3D.html): offline combined-room viewer.
 - [Bathroom-dimensioned-plan.svg](Bathroom-dimensioned-plan.svg): combined room, outside basin.
+- [Bathroom-plumber-plan.svg](Bathroom-plumber-plan.svg): same plan with existing-drain survey zone.
+- [Plumber-Concept.pdf](Plumber-Concept.pdf) and [Plumber-Concept.html](Plumber-Concept.html):
+  four-sheet concept pack.
 - [Preview-3D.png](Preview-3D.png), [Preview-Desktop.png](Preview-Desktop.png),
-  [Preview-mobile.png](Preview-mobile.png): current viewer previews.
-- [Preview-inside-basin.png](Preview-inside-basin.png): compact inside-basin alternative.
-- [Preview-door-conflict.png](Preview-door-conflict.png): 55-degree seated-WC door conflict.
-- [Plumber-Concept.pdf](Plumber-Concept.pdf), [Plumber-Concept.html](Plumber-Concept.html)
-  and [Bathroom-plumber-plan.svg](Bathroom-plumber-plan.svg): combined-room plumber concept.
-- [Preview-Plumber.png](Preview-Plumber.png) and
-  [Preview-Outside-Basin.png](Preview-Outside-Basin.png): plumber mode and outside-basin detail.
-- [QA-REPORT.md](QA-REPORT.md): model/browser verification and site limitations.
+  [Preview-mobile.png](Preview-mobile.png), [Preview-Plumber.png](Preview-Plumber.png) and
+  [Preview-Outside-Basin.png](Preview-Outside-Basin.png): current previews.
+- [QA-REPORT.md](QA-REPORT.md): verification scope and results.
 - [Bathroom-Design-Package.zip](Bathroom-Design-Package.zip): portable package with sources.
 
-## Rebuild and test
+## Build, test and host
 
 With Node.js and Microsoft Edge installed, from this folder on Windows:
 
@@ -232,16 +134,14 @@ npm.cmd test
 npm.cmd run test:browser
 ```
 
-Non-Windows browser QA uses Playwright Chromium, which must be installed for that
-development environment. Test/dependency folders are not part of the public
-package. The source is authored for this measured room; changing constants alone
-is not a substitute for re-authoring and checking the corresponding 3D geometry.
+Non-Windows browser/PDF QA uses Playwright Chromium, which must be installed for
+that development environment. Local dependency and QA folders are not published.
 
-## Hosting
+GitHub Pages serves `main`, root `/`. The build writes **content-versioned CSS and
+JavaScript URLs** into the published entry point so a stale unversioned script is
+not reused with the current controls. Keep the generated version tokens when
+publishing, along with `styles.css`, `dist/viewer.js`, `.nojekyll`, the handover
+files and `THIRD-PARTY-NOTICES.txt`. All asset links are relative.
 
-GitHub Pages serves `main`, root `/`. Commit the updated source and generated
-files after rebuilding/testing. Keep `index.html`, `styles.css`, `dist/viewer.js`,
-`.nojekyll` and `THIRD-PARTY-NOTICES.txt` in the published files. Asset links are
-relative so the project works under its Pages subpath. Include the plumber HTML,
-PDF and SVG in the published files. The standalone viewer remains independently
-usable offline; its handover links require the adjacent handover files.
+The source is authored for this measured room; changing constants alone is not
+a substitute for re-authoring and checking the corresponding 3D geometry.
