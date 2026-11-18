@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   ROOM, ITEMS, PLANNING_TARGETS, DOORS, EXISTING_PAN, itemsForBasin, basinApproach,
   evaluateLayout, evaluateSeparate, insideRoom, overlaps, rectangle, planSvg,
-  comparisonSvg, doorTip, doorSweepIntersects, doorAtAngleIntersects,
+  comparisonSvg, doorTip, doorSweepIntersects, doorAtAngleIntersects, PLUMBER_SITE, tileQuantities,
 } from '../src/layout.js';
 
 test('confirmed inside dimensions and original widths reconcile exactly', () => {
@@ -11,6 +11,54 @@ test('confirmed inside dimensions and original widths reconcile exactly', () => 
   assert.equal(ROOM.depth, 48);
   assert.equal(ROOM.height, 12 * 12);
   assert.equal(ROOM.originalToiletWidth + ROOM.removedWallWidth + ROOM.originalBathWidth, ROOM.width);
+});
+
+test('plumber record distinguishes owner-confirmed drain corner from unverified connections', () => {
+  assert.equal(PLUMBER_SITE.basinPlacement, 'outside');
+  assert.equal(PLUMBER_SITE.existingDrain.corner, 'back-left corner of the original bathroom');
+  assert.equal(PLUMBER_SITE.existingDrain.exactCentreVerified, false);
+  assert.equal(PLUMBER_SITE.existingDrain.invertVerified, false);
+  assert.equal(PLUMBER_SITE.existingDrain.destinationVerified, false);
+  assert.equal(PLUMBER_SITE.wcOutletVerified, false);
+  assert.ok(insideRoom(PLUMBER_SITE.existingDrain.surveyZone));
+  assert.equal(PLUMBER_SITE.geyserInstalled, false);
+  assert.equal(PLUMBER_SITE.geyserPointsInstalled, false);
+  assert.equal(PLUMBER_SITE.existingBathTapCount, 2);
+});
+
+test('seven-foot tile estimate subtracts only the retained doorway within the tile band', () => {
+  const result = tileQuantities();
+  assert.equal(PLUMBER_SITE.tileHeight, 84);
+  assert.equal(result.floor, 32);
+  assert.equal(result.grossWalls, 168);
+  assert.ok(Math.abs(result.doorway - 16.1111111111) < 1e-8);
+  assert.ok(Math.abs(result.netWalls - 151.8888888889) < 1e-8);
+  assert.ok(Math.abs(result.floorAndWalls - 183.8888888889) < 1e-8);
+  assert.ok(Math.abs(result.wallsWithWaste - 167.0777777778) < 1e-8);
+  assert.equal(result.doorHeightAssumed, true);
+  assert.equal(result.outsideSplashbackExcluded, true);
+  assert.equal(tileQuantities(ROOM, 60).doorway, 29 * 60 / 144);
+  assert.throws(() => tileQuantities(ROOM, 145), /exceed/);
+  assert.throws(() => tileQuantities(ROOM, 0), /Invalid/);
+});
+
+test('outside basin design uses proposed rather than surveyed product dimensions', () => {
+  const design = PLUMBER_SITE.outsideBasin;
+  assert.equal(design.width, ITEMS.basin.width);
+  assert.equal(design.depth, ITEMS.basin.depth);
+  assert.equal(design.rimHeight, 35);
+  assert.deepEqual(design.mirror, { width: 22, height: 24, bottom: 44 });
+  assert.equal(design.measuredProduct, false);
+  assert.ok(PLUMBER_SITE.servicePoints.every(point => point.height < PLUMBER_SITE.tileHeight));
+});
+
+test('plumber plan exports the existing drain as a survey zone, not an exact pipe centre', () => {
+  const svg = planSvg({ showPlumber: true });
+  assert.ok(svg.includes('data-site-ref="E1"'));
+  assert.ok(svg.includes('data-exact-centre="unverified"'));
+  assert.ok(svg.includes('no WC rough-in approved'));
+  assert.ok(svg.includes('GN1 / FD1 are NEW proposals'));
+  assert.ok(!planSvg().includes('data-site-ref="E1"'));
 });
 
 test('area and recovered partition footprint use square feet, not square inches', () => {

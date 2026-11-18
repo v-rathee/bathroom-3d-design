@@ -395,3 +395,76 @@ test('phone touch orbit and two-finger pinch operate the real camera', async ({ 
   await expect.poll(async () => (await snapshot(page)).camera.zoom).toBeGreaterThan(zoomBefore);
   await client.detach();
 });
+
+test('plumber mode stays in the same 3D viewer with an outside basin and verified tile guide', async ({ page }) => {
+  await page.locator('#basin-placement').selectOption('inside');
+  await page.locator('#plumber-toggle').click();
+  let state = await snapshot(page);
+  expect(state.plumber).toBe(true);
+  expect(state.comparison).toBe(false);
+  expect(state.basinPlacement).toBe('outside');
+  expect(state.visible.plumber).toBe(true);
+  expect(state.visible.outsideBasinDesign).toBe(true);
+  expect(state.visible.tileGuide).toBe(true);
+  expect(state.plumberConcept.tileGuideWorldHeight).toBe(84);
+  expect(state.plumberConcept.existingDrain.exactCentreVerified).toBe(false);
+  expect(state.plumberConcept.geyserPointsInstalled).toBe(false);
+  await expect(page.locator('#basin-placement')).toBeDisabled();
+  await expect(page.locator('#panel-plumber')).toBeVisible();
+  await expect(page.locator('#plumber-quantities')).toContainText('151.89');
+  await page.locator('#tile-line').uncheck();
+  expect((await snapshot(page)).visible.tileGuide).toBe(false);
+  await page.locator('[data-view="plan"]').click();
+  await expect(page.locator('#plan-host [data-site-ref="E1"]')).toHaveAttribute('data-exact-centre', 'unverified');
+  await page.locator('#plumber-toggle').click();
+  state = await snapshot(page);
+  expect(state.visible.plumber).toBe(false);
+  expect(state.visible.outsideBasinDesign).toBe(false);
+  await expect(page.locator('#basin-placement')).toBeEnabled();
+  await page.goto(`${url}#plumber`);
+  await page.waitForFunction(() => window.bathroomViewer?.snapshot().ready);
+  expect((await snapshot(page)).plumber).toBe(true);
+  expect((await snapshot(page)).basinPlacement).toBe('outside');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('#reset-view').click();
+  await page.locator('.stage').screenshot({ path: path.join(root, 'Preview-Plumber.png') });
+  expect(await page.evaluate(() => {
+    const toolbar = document.querySelector('.stage-toolbar').getBoundingClientRect();
+    const caption = document.querySelector('.stage-caption').getBoundingClientRect();
+    return caption.top >= toolbar.bottom;
+  })).toBe(true);
+});
+
+test('plumber outside-basin detail and printable handover links work without changing the existing comparison', async ({ page }) => {
+  await page.locator('[data-tab="plumber"]').click();
+  await expect(page.locator('#plumber-pdf')).toHaveAttribute('href', 'Plumber-Concept.pdf');
+  await expect(page.locator('#plumber-print')).toHaveAttribute('href', 'Plumber-Concept.html');
+  await page.locator('#outside-basin-view').click();
+  const state = await snapshot(page);
+  expect(state.view).toBe('basin');
+  expect(state.plumber).toBe(true);
+  expect(state.walls).toBe('full');
+  expect(state.doorAngle).toBe(0);
+  expect(state.geometry.matches).toBe(true);
+  expect(state.plumberConcept.outsideBasin.mirror).toEqual({ width: 22, height: 24, bottom: 44 });
+  await page.locator('.stage').screenshot({ path: path.join(root, 'Preview-Outside-Basin.png') });
+  await page.locator('#reset-view').click();
+  expect((await snapshot(page)).view).toBe('perspective');
+  await page.locator('#plumber-toggle').click();
+  await page.locator('#compare-toggle').click();
+  expect((await snapshot(page)).comparison).toBe(true);
+  await expect(page.locator('#existing-heading')).toBeVisible();
+});
+
+test('printable plumber concept has four valid sheets and explicit unverified rough-in hold points', async ({ page }) => {
+  await page.goto(new URL('../Plumber-Concept.html', import.meta.url).href);
+  await expect(page.locator('.sheet')).toHaveCount(4);
+  await expect(page.locator('#p01')).toContainText('NOT soil-pipe coordinates');
+  await expect(page.locator('#p02')).toContainText('No slope, finished level or step height is assigned');
+  await expect(page.locator('#p03')).toContainText('No floor vanity proposed');
+  await expect(page.locator('#p04')).toContainText('151.89');
+  await expect(page.locator('#p04')).toContainText('80 in height ASSUMED');
+  const valid = await page.locator('svg').evaluateAll(svgs => svgs.every(svg =>
+    !new DOMParser().parseFromString(new XMLSerializer().serializeToString(svg), 'image/svg+xml').querySelector('parsererror')));
+  expect(valid).toBe(true);
+});
