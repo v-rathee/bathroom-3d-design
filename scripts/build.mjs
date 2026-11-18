@@ -34,6 +34,7 @@ await Promise.all([
   writeFile(path.join(root, 'Bathroom-separate-western-plan.svg'), planSvg({ scenario: 'western' })),
   writeFile(path.join(root, 'Bathroom-inside-basin-plan.svg'), planSvg({ basinPlacement: 'inside' })),
   writeFile(path.join(root, 'Bathroom-comparison-plan.svg'), comparisonSvg()),
+  writeFile(path.join(root, 'Bathroom-plumber-plan.svg'), planSvg({ showPlumber: true, basinPlacement: 'outside' })),
   writeFile(path.join(root, 'THIRD-PARTY-NOTICES.txt'), `Three.js\n\n${threeLicense}`),
 ]);
 console.log(`Built offline viewer: ${path.join(root, 'Bathroom-3D.html')}`);
