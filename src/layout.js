@@ -17,7 +17,7 @@ export const ITEMS = Object.freeze({
     x: 10, d: 22, width: 15, depth: 25, height: 32.5,
     seatHeight: 17.5,
     floorStanding: true,
-    description: 'Left-side floor-mounted WC. The complete installed projection must be no more than 25 inches, with the illustrated 1-inch rear allowance. A longer model reduces the already-tight front clearance.',
+    description: 'Illustrative left-side floor-mounted WC: 15 inches wide x 25 inches body depth, PLUS a 1-inch rear allowance. Total finished-back-wall-to-front projection is 26 inches, leaving 22 inches in front. Product, outlet and manufacturer rough-in are not selected; a longer installed projection reduces that clearance.',
   },
   shower: {
     name: 'Open shower',
@@ -36,9 +36,9 @@ export const ITEMS = Object.freeze({
   },
   heater: {
     name: 'Storage geyser',
-    category: 'Illustrative / electrical review required',
+    category: 'NEW future provision / unit and electrical review required',
     x: 40.5, d: 33.5, width: 14, depth: 14, bottom: 83, height: 22,
-    description: 'Illustrative 14-inch-diameter, 22-inch-high water heater, high on the rear wall and left of the shower footprint. Capacity, mounting, service access, electrical zones, earthing and protected supply are NOT certified by this model.',
+    description: 'No geyser or geyser points exist now. This is a NEW future provision, illustrated as a 14-inch-diameter, 22-inch-high unit high on the rear wall. Do not locate pipe outlets from this body envelope. Select the actual product and verify mounting, service access, safety arrangements, electrical zones, earthing and protected supply with qualified installers.',
   },
   shelf: {
     name: 'Wall shelf',
@@ -51,13 +51,13 @@ export const ITEMS = Object.freeze({
     category: 'Existing / position confirmed, size assumed',
     x: 39, d: -18, width: 18, depth: 14, bottom: 29, height: 9,
     outside: true,
-    description: 'Remains outside, midway between the original two doorways. The 18 x 14-inch basin shown is a context model only: its actual size and outside circulation were not measured.',
+    description: 'Remains outside, midway between the original two doorways. The 18 x 14-inch basin outline is illustrative: actual size and outside circulation were not measured. Plumber mode adds a proposed 22 x 24-inch mirror and splashback; rim height is proposed at 35 inches above the outside finished floor. Confirm reuse versus replacement and actual fixing/outlet templates.',
   },
   drain: {
     name: 'Proposed shower drain',
     category: 'Proposed / plumbing survey required',
     x: 63, d: 45.5, width: 30, depth: 1.5, height: 0.3,
-    description: 'Illustrative rear linear drain. Existing drain and waste-pipe positions are unknown. Floor falls, trap, pipe route, waterproofing and threshold levels must be designed by the installer.',
+    description: 'NEW proposed rear linear drain option, distinct from existing drain E1 at the old bathroom back-left corner. Only that existing corner is confirmed; its pipe centre, size, trap, invert and destination are unverified. No connection to E1 is assumed. The installer must approve product, drainage routes, traps, floor falls, waterproofing and threshold levels.',
   },
 });
 
@@ -74,6 +74,58 @@ export const DOORS = Object.freeze({
   toilet: { x: 0, width: 29, hinge: 'left', direction: 'inward', bottom: 1, top: 80 },
   bathroom: { x: 67, width: 29, hinge: 'right', direction: 'inward', bottom: 1, top: 80 },
 });
+
+export const PLUMBER_SITE = Object.freeze({
+  revision: 'P1',
+  basinPlacement: 'outside',
+  tileHeight: 84,
+  existingBathTapCount: 2,
+  geyserInstalled: false,
+  geyserPointsInstalled: false,
+  wcProductSelected: false,
+  wcOutletVerified: false,
+  existingDrain: {
+    id: 'E1',
+    corner: 'back-left corner of the original bathroom',
+    exactCentreVerified: false,
+    invertVerified: false,
+    destinationVerified: false,
+    surveyZone: { x: 40.5, d: 44, width: 4, depth: 4 },
+  },
+  servicePoints: [
+    { id: 'HF1', x: 28, d: 47, height: 24, label: 'HF1 / health faucet / proposed' },
+    { id: 'MX1', x: 79, d: 47, height: 43, label: 'MX1 / mixer / proposed' },
+    { id: 'BT1', x: 85, d: 47, height: 18, label: 'BT1 / bucket tap / proposed' },
+  ],
+  outsideBasin: {
+    width: 18, depth: 14, rimHeight: 35, centreX: 48,
+    mirror: { width: 22, height: 24, bottom: 44 },
+    splashback: { width: 30, height: 50, bottom: 27 },
+    measuredProduct: false,
+  },
+});
+
+export function tileQuantities(room = ROOM, tileHeight = PLUMBER_SITE.tileHeight, doorHeight = room.doorHeight) {
+  for (const [name, value] of Object.entries({
+    width: room.width, depth: room.depth, roomHeight: room.height,
+    doorWidth: room.doorWidth, doorHeight, tileHeight,
+  })) if (!Number.isFinite(value) || value <= 0) throw new RangeError(`Invalid ${name} for tile quantities.`);
+  if (tileHeight > room.height || room.doorWidth > room.width || doorHeight > room.height) {
+    throw new RangeError('Tile or opening dimensions exceed the room.');
+  }
+  const floor = room.width * room.depth / 144;
+  const grossWalls = 2 * (room.width + room.depth) * tileHeight / 144;
+  const doorway = room.doorWidth * Math.min(tileHeight, doorHeight) / 144;
+  const netWalls = grossWalls - doorway;
+  return {
+    floor, grossWalls, doorway, netWalls,
+    floorAndWalls: floor + netWalls,
+    floorWithWaste: floor * 1.1,
+    wallsWithWaste: netWalls * 1.1,
+    outsideSplashbackExcluded: true,
+    doorHeightAssumed: true,
+  };
+}
 
 export const INSIDE_BASIN = Object.freeze({
   name: 'Compact inside handbasin',
@@ -301,7 +353,7 @@ export function evaluateLayout(room = ROOM, items = ITEMS) {
     },
     {
       id: 'plumbing', status: 'unverified', title: 'Toilet outlet, traps and drain routes',
-      detail: 'A seated WC may need a different outlet and rough-in from the squat pan. Installer must survey waste pipes and levels before approving placement.',
+      detail: 'WC product, outlet and rough-in are not selected. E1 is confirmed only at the old bathroom back-left corner; its exact pipe centre, invert, trap and destination require survey. The NEW rear linear drain is not an existing connection. Keep WC soil separate from bath floor waste until an installer has designed suitable connections.',
     },
     {
       id: 'waterproofing', status: 'unverified', title: 'Floor falls, waterproofing and wet-room threshold',
@@ -309,7 +361,7 @@ export function evaluateLayout(room = ROOM, items = ITEMS) {
     },
     {
       id: 'electrical', status: 'unverified', title: 'Geyser safety and service access',
-      detail: 'A qualified installer/electrician must verify the model, mounting, electrical zones, protected supply, earthing and maintenance access. No electrical compliance is claimed.',
+      detail: 'No geyser or geyser points exist now. NEW future provision needs a selected product and qualified installer/electrician review of mounting, safety arrangements, electrical zones, protected supply, earthing and service access. No electrical compliance is claimed.',
     },
     {
       id: 'external-clearance', status: 'unverified', title: 'Door frames, actual clear opening and any door alteration',
@@ -403,10 +455,19 @@ function svgFrame(content, prefix, title, description) {
     </g></svg>`;
 }
 
+function svgDrainSurvey() {
+  const zone = PLUMBER_SITE.existingDrain.surveyZone;
+  return `<g data-site-ref="E1" data-exact-centre="unverified">
+    <rect x="${zone.x}" y="${ROOM.depth - zone.d - zone.depth}" width="${zone.width}" height="${zone.depth}" fill="#f3d9b8" fill-opacity=".7" stroke="#a36c3d" stroke-dasharray=".7 .5" stroke-width=".4"/>
+    <path d="M42.5 2L31 -16H5" fill="none" stroke="#a36c3d" stroke-width=".35"/>
+    <text x="5" y="-17" font-size="2.4" fill="#91522e">E1 existing corner / centre TBD</text>
+  </g>`;
+}
+
 export function planSvg({
   showRemoved = false, showClearances = true, doorOpen = true,
   doorAngle = doorOpen ? 90 : 0, basinPlacement = 'outside',
-  scenario = 'combined', frameChange = false,
+  scenario = 'combined', frameChange = false, showPlumber = false,
 } = {}) {
   if (scenario !== 'combined') {
     const separate = evaluateSeparate(scenario, { frameChange, angle: doorAngle });
@@ -428,7 +489,7 @@ export function planSvg({
       <text x="17.5" y="-2" text-anchor="middle">35 in clear</text><text x="68.25" y="-2" text-anchor="middle">55.5 in clear</text>
       ${svgBasin(ITEMS.basin)}
       ${svgDoor(separate.toiletDoor, doorAngle, 'toilet', separate.fullSweepConflict)}
-      ${svgDoor(DOORS.bathroom, doorAngle, 'bathroom')}
+      ${svgDoor(DOORS.bathroom, doorAngle, 'bathroom')}${showPlumber ? svgDrainSurvey() : ''}
       <text x="0" y="77" font-size="2.5" fill="${separate.fullSweepConflict ? '#ad4837' : '#6d7f68'}">${warning}</text>`;
     return svgFrame(content, `separate-${scenario}`, scenario === 'western' ? 'Separate rooms with a compact Western WC: test fit' : 'Current separate toilet and bathroom: measured room reconstruction',
       '35-inch toilet and 55.5-inch bath with a 5.5-inch dividing wall. Fixture sizes assumed. Full door sweep must be checked, not only the fully open position.');
@@ -447,7 +508,8 @@ export function planSvg({
     <circle cx="89" cy="9" r="5.5" fill="#f3e5c4" stroke="#ac8d52" stroke-width=".4"/>
     <rect x="${items.shelf.x}" y="0" width="20" height="7" fill="#b7a785" fill-opacity=".35" stroke="#9b8e70" stroke-dasharray="1 1"/>
     ${basinPlacement === 'outside' ? '<circle cx="47.5" cy="7.5" r="7" fill="#faf9f2" stroke="#9eaa9f" stroke-width=".5" stroke-dasharray="1 1"/><text x="47.5" y="19" text-anchor="middle" font-size="2.6">Geyser above</text>' : ''}
-    ${svgBasin(items.basin)}${svgDoor(DOORS.bathroom, doorAngle, 'bathroom')}
+    ${svgBasin(items.basin)}${svgDoor(DOORS.bathroom, doorAngle, 'bathroom')}${showPlumber ? svgDrainSurvey() : ''}
+    ${showPlumber ? '<text x="46" y="32" text-anchor="middle" font-size="2.4" fill="#8b5834">P1: no WC rough-in approved</text><text x="46" y="36" text-anchor="middle" font-size="2.4">GN1 / FD1 are NEW proposals</text>' : ''}
     <text x="14.5" y="56" text-anchor="middle" fill="#956d3f" font-size="2.5">Old door closed</text>
     <text x="0" y="77" font-size="2.5">Right door retained inward. Basin ${basinPlacement}; actual basin size unmeasured.</text>`;
   return svgFrame(content, `combined-${basinPlacement}`, `Combined bathroom, basin ${basinPlacement}: 96 x 48 inches`,

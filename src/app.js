@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {
   ROOM, ITEMS, DOORS, EXISTING_PAN, itemsForBasin, basinApproach,
-  evaluateLayout, evaluateSeparate, doorTip, planSvg, comparisonSvg,
+  evaluateLayout, evaluateSeparate, doorTip, planSvg, comparisonSvg, PLUMBER_SITE, tileQuantities,
 } from './layout.js';
 
 const $ = selector => document.querySelector(selector);
@@ -14,6 +14,7 @@ const state = {
   finish: 'sage', selected: 'toilet', ready: false, error: null,
   comparison: true, baselineVariant: 'current', basinPlacement: 'outside',
   frameChange: false, doorAngle: 90,
+  plumber: false, tileLine: true,
 };
 const fixtureModels = new Map();
 const pickable = [];
@@ -21,6 +22,9 @@ const labels = new THREE.Group();
 const dimensionLines = new THREE.Group();
 const clearanceGroup = new THREE.Group();
 const removedGroup = new THREE.Group();
+const plumberGroup = new THREE.Group();
+const plumberLabels = new THREE.Group();
+const tileGuide = new THREE.Group();
 const baseline = {
   scene: null, models: new Map(), pickable: [], labels: new THREE.Group(),
   dimensions: new THREE.Group(), walls: {}, doors: {}, variants: {},
@@ -31,16 +35,17 @@ let scene, renderer, controls, activeCamera, perspectiveCamera, topCamera;
 let fullWalls, cutawayWalls, doorPivot, selectionBox, floorMesh, accentMaterial, wallMaterial;
 let heightDimension, geometryAudit, resizeObserver;
 let basinMirror, insideApproach;
+let outsideBasinDesign;
 
 const itemOrder = ['toilet', 'shower', 'bucket', 'heater', 'shelf', 'basin', 'drain'];
 const shortSizes = {
   toilet: '15 x 25 in / compact model',
   shower: '36 x 36 in / no enclosure',
   bucket: '11 in diameter / movable',
-  heater: '14 in diameter / assumed',
+  heater: 'NEW future provision / not installed',
   shelf: '20 x 7 in / wall mounted',
   basin: 'Stays outside / size assumed',
-  drain: '30 in long / proposed',
+  drain: 'NEW drain option / not existing E1',
 };
 
 function renderInformation() {
@@ -87,7 +92,7 @@ function selectItem(id) {
   });
   if (selectionBox) {
     const object = fixtureModels.get(id);
-    selectionBox.visible = !existing && Boolean(object) && state.view !== 'plan';
+    selectionBox.visible = !existing && Boolean(object) && state.view !== 'plan' && (state.view !== 'basin' || id === 'basin');
     if (object) selectionBox.setFromObject(object);
   }
   if (baseline.selection) {
@@ -108,6 +113,7 @@ function planOptions() {
     showRemoved: state.removed, showClearances: state.clearances,
     doorAngle: state.doorAngle, basinPlacement: state.basinPlacement,
     variant: state.baselineVariant, frameChange: state.frameChange,
+    showPlumber: state.plumber,
   };
 }
 
@@ -135,8 +141,10 @@ function getViewports() {
   const stacked = state.comparison && stage.clientWidth < 650;
   stage.classList.toggle('comparing', state.comparison);
   stage.classList.toggle('stacked', stacked);
-  const { width, height } = stage.getBoundingClientRect();
-  const top = state.comparison ? 190 : 155, bottom = 85, margin = 12;
+  const { width, height, top: stageTop } = stage.getBoundingClientRect();
+  const toolbarBottom = $('.stage-toolbar').getBoundingClientRect().bottom - stageTop;
+  $('.stage-caption').style.top = `${toolbarBottom + 12}px`;
+  const top = Math.max(state.comparison ? 190 : 155, toolbarBottom + 110), bottom = 85, margin = 12;
   if (!state.comparison) return { width, height, stacked: false, proposed: { left: margin, top, width: width - margin * 2, height: height - top - bottom }, existing: null };
   if (stacked) {
     const paneHeight = (height - top - bottom - 80) / 2;
@@ -421,7 +429,7 @@ function buildHeater(ceramic, brass) {
   register('heater', group);
   tube(scene, [[44, 83, 40.5], [44, 77, 45.9], [59, 77, 46.2], [79, 77, 46.2]], 0.25, brass);
   tube(scene, [[51, 83, 40.5], [52, 74, 46.2], [85, 74, 46.2], [85, 20, 46.2]], 0.22, brass);
-  tag(labels, 'GEYSER / ASSUMED SIZE', 47.5, 113, 42, { width: 34 });
+  tag(labels, 'GN1 / NEW FUTURE GEYSER', 47.5, 113, 42, { width: 35 });
 }
 
 function buildShelf() {
@@ -472,6 +480,47 @@ function buildDrain() {
   for (let x = 64; x < 93; x += 1.5) box(group, 0.45, 0.05, 1.1, x, 0.32, 46.25, material('#a9b1a3'));
   scene.add(group);
   register('drain', group);
+}
+
+function buildPlumberConcept(brass) {
+  const zone = PLUMBER_SITE.existingDrain.surveyZone;
+  const zoneGroup = new THREE.Group();
+  const patch = box(zoneGroup, zone.width, 0.3, zone.depth,
+    zone.x + zone.width / 2, 0.2, zone.d + zone.depth / 2,
+    material('#d69e58', { transparent: true, opacity: 0.55 }));
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(patch.geometry),
+    new THREE.LineBasicMaterial({ color: '#92512e' }));
+  edges.position.copy(patch.position);
+  zoneGroup.add(edges);
+  plumberGroup.add(zoneGroup);
+  tag(plumberLabels, 'E1 / EXISTING DRAIN CORNER / SURVEY', 43, 9, 44, { width: 45, color: '#8b512b', background: '#fff2de' });
+  for (const point of PLUMBER_SITE.servicePoints) {
+    mesh(new THREE.SphereGeometry(0.85, 16, 12), material('#4e8bb2'), plumberGroup, point.x, point.height, point.d);
+    tag(plumberLabels, `${point.id} / ${point.height} in AFF*`, point.x, point.height + 5, point.d - 1, { width: 28, color: '#315f7b' });
+  }
+  tag(plumberLabels, 'WC1 / PRODUCT OUTLET + ROUGH-IN: HOLD', 17.5, 4, 17, { width: 45, color: '#8b512b', background: '#fff2de' });
+  line(tileGuide, [[0, PLUMBER_SITE.tileHeight, 47.5], [96, PLUMBER_SITE.tileHeight, 47.5]], '#b2854d', true);
+  line(tileGuide, [[-3, 0, 47.5], [-3, PLUMBER_SITE.tileHeight, 47.5]], '#b2854d', true);
+  tag(tileGuide, '84 in / 7 ft TILE LINE / 2134 mm', 24, 88, 47.5, { width: 43, color: '#8b6134', background: '#fff5e3' });
+  plumberGroup.add(plumberLabels, tileGuide);
+  plumberGroup.visible = false;
+  scene.add(plumberGroup);
+
+  outsideBasinDesign = new THREE.Group();
+  const design = PLUMBER_SITE.outsideBasin;
+  box(outsideBasinDesign, design.splashback.width, design.splashback.height, 0.2,
+    design.centreX, design.splashback.bottom + design.splashback.height / 2, -4.15, material('#b8cdbb'));
+  box(outsideBasinDesign, design.mirror.width, design.mirror.height, 0.35,
+    design.centreX, design.mirror.bottom + design.mirror.height / 2, -4.45, brass);
+  box(outsideBasinDesign, design.mirror.width - 1.5, design.mirror.height - 1.5, 0.1,
+    design.centreX, design.mirror.bottom + design.mirror.height / 2, -4.7, material('#b7cfc9', { metalness: 0.65, roughness: 0.15 }));
+  tube(outsideBasinDesign, [[48, 29, -11], [48, 22, -11], [52, 22, -11], [52, 28, -5]], 0.45, material('#9eafa2', { metalness: 0.4 }));
+  outsideBasinDesign.visible = false;
+  scene.add(outsideBasinDesign);
+
+  baseline.plumber = zoneGroup.clone(true);
+  baseline.plumber.visible = false;
+  baseline.scene.add(baseline.plumber);
 }
 
 function makeDoor(parent, definition, brass) {
@@ -773,6 +822,7 @@ function initialize3D() {
   buildDoor(brass);
   buildMeasurements();
   buildBaseline(ceramic, brass);
+  buildPlumberConcept(brass);
   selectionBox = new THREE.BoxHelper(fixtureModels.get('toilet'), '#bd9659');
   selectionBox.material.transparent = true;
   selectionBox.material.opacity = 0.65;
@@ -859,7 +909,10 @@ function setView(view) {
   $('#canvas-host').hidden = plan;
   $('#viewer-error').hidden = plan || !state.error;
   $('#save-image').disabled = plan || !state.ready;
-  $('#view-caption').textContent = state.comparison ? 'LINKED VIEWS / SAME CAMERA AND SCALE' : plan ? 'DIMENSIONED PLAN / INSIDE FACE MEASUREMENTS' : 'PROPOSED OPEN WET ROOM';
+  $('#view-caption').textContent = state.view === 'basin'
+    ? 'OUTSIDE WASHBASIN / PROPOSED SIZES / VERIFY ON SITE'
+    : state.plumber ? 'PLUMBER P1 / PROPOSED POINTS / SURVEY REQUIRED'
+    : state.comparison ? 'LINKED VIEWS / SAME CAMERA AND SCALE' : plan ? 'DIMENSIONED PLAN / INSIDE FACE MEASUREMENTS' : 'PROPOSED OPEN WET ROOM';
   $('#viewer-help').innerHTML = plan
     ? '<strong>Every inch matters.</strong><span>Back wall at top / retained entrance at bottom right</span>'
     : state.comparison
@@ -871,6 +924,11 @@ function setView(view) {
     button.setAttribute('aria-pressed', String(active));
   });
   positionPanes();
+  labels.visible = state.labels && view !== 'basin';
+  dimensionLines.visible = state.dimensions && view !== 'basin';
+  baseline.labels.visible = state.labels && view !== 'basin';
+  baseline.dimensions.visible = state.dimensions && view !== 'basin';
+  plumberGroup.visible = state.plumber && view !== 'basin';
   if (!state.ready || plan) return;
   controls.enabled = false;
   controls.dispose();
@@ -884,6 +942,9 @@ function setView(view) {
   } else if (view === 'inside') {
     activeCamera.position.set(80, 57, 14);
     target.set(35, 32, -40);
+  } else if (view === 'basin') {
+    activeCamera.position.set(48, 58, 138);
+    target.set(48, 44, 0);
   } else {
     activeCamera.position.set(-65, state.walls === 'full' ? 180 : 110, 145);
   }
@@ -950,6 +1011,24 @@ function setComparison(enabled) {
   setView(state.view);
 }
 
+function setPlumber(enabled) {
+  state.plumber = enabled;
+  $('#plumber-toggle').textContent = `Plumber: ${enabled ? 'on' : 'off'}`;
+  $('#plumber-toggle').setAttribute('aria-pressed', String(enabled));
+  $('#basin-placement').disabled = enabled;
+  if (enabled) {
+    $('#basin-placement').value = 'outside';
+    setBasinPlacement('outside');
+    setComparison(false);
+    selectTab('plumber');
+  }
+  plumberGroup.visible = enabled;
+  if (outsideBasinDesign) outsideBasinDesign.visible = enabled;
+  if (baseline.plumber) baseline.plumber.visible = enabled;
+  refreshPlan();
+  setView(enabled ? 'perspective' : state.view === 'basin' ? 'perspective' : state.view);
+}
+
 function selectTab(name) {
   $$('.tab').forEach(button => {
     const active = button.dataset.tab === name;
@@ -993,6 +1072,24 @@ function wireControls() {
   $('#door-toggle').addEventListener('click', toggleDoor);
   $('#door-angle').addEventListener('input', event => setDoorAngle(Number(event.target.value)));
   $('#compare-toggle').addEventListener('click', () => setComparison(!state.comparison));
+  $('#plumber-toggle').addEventListener('click', () => setPlumber(!state.plumber));
+  $('#open-plumber-view').addEventListener('click', () => {
+    setPlumber(true);
+    $('.stage').scrollIntoView({ block: 'start' });
+  });
+  $('#outside-basin-view').addEventListener('click', () => {
+    setPlumber(true);
+    $('#wall-mode').value = 'full';
+    setWalls('full');
+    setDoorAngle(0);
+    setView('basin');
+    selectItem('basin');
+    $('.stage').scrollIntoView({ block: 'start' });
+  });
+  $('#tile-line').addEventListener('change', event => {
+    state.tileLine = event.target.checked;
+    tileGuide.visible = state.tileLine;
+  });
   $('#basin-placement').addEventListener('change', event => setBasinPlacement(event.target.value));
   $('#existing-layout').addEventListener('change', event => {
     state.baselineVariant = event.target.value;
@@ -1027,8 +1124,11 @@ function wireControls() {
     $(`#${id}`).addEventListener('change', event => {
       state[key] = event.target.checked;
       group.visible = state[key];
-      if (key === 'labels') baseline.labels.visible = state.labels;
-      if (key === 'dimensions') baseline.dimensions.visible = state.dimensions;
+      if (key === 'labels') group.visible = state.labels && state.view !== 'basin';
+      if (key === 'dimensions') group.visible = state.dimensions && state.view !== 'basin';
+      if (key === 'labels') baseline.labels.visible = group.visible;
+      if (key === 'labels') plumberLabels.visible = state.labels;
+      if (key === 'dimensions') baseline.dimensions.visible = group.visible;
       refreshPlan();
     });
   }
@@ -1044,7 +1144,7 @@ function wireControls() {
   }));
   $('#save-plan').addEventListener('click', () => download(
     new Blob([state.comparison ? comparisonSvg(planOptions()) : planSvg(planOptions())], { type: 'image/svg+xml' }),
-    state.comparison ? 'Bathroom-comparison-plan.svg' : 'Bathroom-dimensioned-plan.svg',
+    state.comparison ? 'Bathroom-comparison-plan.svg' : state.plumber ? 'Bathroom-plumber-plan.svg' : 'Bathroom-dimensioned-plan.svg',
   ));
   $('#save-image').addEventListener('click', () => {
     if (!state.ready || state.view === 'plan') {
@@ -1103,12 +1203,18 @@ function wireControls() {
 }
 
 renderInformation();
+const quantities = tileQuantities();
+$('#plumber-quantities').textContent = `Walls: ${quantities.netWalls.toFixed(2)} sq ft net (${quantities.wallsWithWaste.toFixed(2)} with 10% extra). Floor: ${quantities.floor} sq ft (${quantities.floorWithWaste.toFixed(1)} with 10%). Door height is assumed 80 in; outside splashback and returns are extra.`;
 wireControls();
 try {
   initialize3D();
 } catch (error) {
   showViewerError(error instanceof Error ? error : new Error(String(error)));
 }
+if (window.location.hash === '#plumber') setPlumber(true);
+window.addEventListener('hashchange', () => {
+  if (window.location.hash === '#plumber') setPlumber(true);
+});
 
 Object.defineProperty(window, 'bathroomViewer', {
   value: Object.freeze({
@@ -1125,6 +1231,8 @@ Object.defineProperty(window, 'bathroomViewer', {
           insideBasin: Boolean(basinModels.inside?.visible), outsideBasin: Boolean(basinModels.outside?.visible),
           mirror: Boolean(basinMirror?.visible), existingBasin: Boolean(baseline.models.get('existing-basin')?.visible),
           doorClashHighlight: Boolean(baseline.clashBox?.visible),
+          plumber: plumberGroup.visible, tileGuide: plumberGroup.visible && tileGuide.visible,
+          outsideBasinDesign: Boolean(outsideBasinDesign?.visible),
         },
         doorAngleDegrees: doorPivot ? THREE.MathUtils.radToDeg(doorPivot.rotation.y) : null,
         existingToiletDoorAngleDegrees: baseline.doors.toilet ? THREE.MathUtils.radToDeg(baseline.doors.toilet.rotation.y) : null,
@@ -1135,6 +1243,14 @@ Object.defineProperty(window, 'bathroomViewer', {
           return [id, { x: point.x, d: -point.z }];
         })) : null,
         separate: evaluateSeparate(state.baselineVariant, { frameChange: state.frameChange, angle: state.doorAngle }),
+        plumberConcept: {
+          revision: PLUMBER_SITE.revision, tileHeight: PLUMBER_SITE.tileHeight,
+          tileGuideWorldHeight: tileGuide.children[0]?.geometry.attributes.position.getY(0),
+          existingDrain: PLUMBER_SITE.existingDrain,
+          geyserInstalled: PLUMBER_SITE.geyserInstalled, geyserPointsInstalled: PLUMBER_SITE.geyserPointsInstalled,
+          wcOutletVerified: PLUMBER_SITE.wcOutletVerified, outsideBasin: PLUMBER_SITE.outsideBasin,
+          servicePoints: PLUMBER_SITE.servicePoints, quantities,
+        },
         viewports: getViewports(),
         fixtureScreenPoints: activeCamera && renderer ? Object.fromEntries([...fixtureModels].map(([id, object]) => {
           const point = new THREE.Box3().setFromObject(object).getCenter(new THREE.Vector3()).project(activeCamera);
