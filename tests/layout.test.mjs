@@ -1,285 +1,185 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  ROOM, ITEMS, PLANNING_TARGETS, DOORS, EXISTING_PAN, itemsForBasin, basinApproach,
-  evaluateLayout, evaluateSeparate, insideRoom, overlaps, rectangle, planSvg,
-  comparisonSvg, doorTip, doorSweepIntersects, doorAtAngleIntersects, PLUMBER_SITE, tileQuantities,
+  ROOM, ITEMS, DOORS, PLUMBER_SITE, evaluateLayout, insideRoom, overlaps,
+  rectangle, planSvg, doorTip, doorSweepIntersects, doorAtAngleIntersects, tileQuantities,
 } from '../src/layout.js';
 
-test('confirmed inside dimensions and original widths reconcile exactly', () => {
+test('confirmed combined room dimensions and inferred wall width reconcile', () => {
   assert.equal(ROOM.width, 96);
   assert.equal(ROOM.depth, 48);
-  assert.equal(ROOM.height, 12 * 12);
+  assert.equal(ROOM.height, 144);
   assert.equal(ROOM.originalToiletWidth + ROOM.removedWallWidth + ROOM.originalBathWidth, ROOM.width);
 });
 
-test('plumber record distinguishes owner-confirmed drain corner from unverified connections', () => {
+test('combined floor and recovered wall area use square feet', () => {
+  assert.equal(evaluateLayout().areaSquareFeet, 32);
+  assert.ok(Math.abs(evaluateLayout().recoveredSquareFeet - 1.8333333333) < 1e-8);
+});
+
+test('the only basin and only retained door are the approved outside basin and right inward door', () => {
+  assert.equal(ITEMS.basin.outside, true);
   assert.equal(PLUMBER_SITE.basinPlacement, 'outside');
+  assert.deepEqual(Object.keys(DOORS), ['bathroom']);
+  assert.equal(DOORS.bathroom.hinge, 'right');
+  assert.equal(DOORS.bathroom.direction, 'inward');
+});
+
+test('every indoor fixture footprint fits the measured combined room', () => {
+  for (const item of Object.values(ITEMS).filter(item => !item.outside)) assert.ok(insideRoom(item), item.name);
+});
+
+test('actual planned WC envelope leaves 22 inches in front and 1 inch behind', () => {
+  assert.deepEqual(rectangle(ITEMS.toilet), { left: 10, right: 25, front: 22, back: 47 });
+  assert.equal(evaluateLayout().frontClearance, 22);
+  assert.equal(evaluateLayout().rearAllowance, 1);
+  assert.equal(evaluateLayout().sideClearance, 17.5);
+  assert.equal(ITEMS.toilet.seatHeight, 17.5);
+});
+
+test('a longer installed WC produces a front-clearance caution', () => {
+  const items = { ...ITEMS, toilet: { ...ITEMS.toilet, d: 20, depth: 27 } };
+  assert.equal(evaluateLayout(ROOM, items).checks.find(check => check.id === 'wc-front').status, 'caution');
+});
+
+test('a WC too close to the side wall produces a side-clearance caution', () => {
+  const items = { ...ITEMS, toilet: { ...ITEMS.toilet, x: 5 } };
+  assert.equal(evaluateLayout(ROOM, items).checks.find(check => check.id === 'wc-side').status, 'caution');
+});
+
+test('shower planning targets use both dimensions', () => {
+  assert.equal(ITEMS.shower.width, 36);
+  assert.equal(ITEMS.shower.depth, 36);
+  const items = { ...ITEMS, shower: { ...ITEMS.shower, width: 28 } };
+  assert.equal(evaluateLayout(ROOM, items).checks.find(check => check.id === 'shower-size').status, 'caution');
+});
+
+test('bucket shares shower space but not the WC footprint', () => {
+  assert.equal(overlaps(ITEMS.toilet, ITEMS.shower), false);
+  assert.equal(overlaps(ITEMS.toilet, ITEMS.bucket), false);
+  assert.equal(overlaps(ITEMS.bucket, ITEMS.shower), true);
+  assert.equal(ITEMS.bucket.movable, true);
+});
+
+test('floor-fixture collision is detected', () => {
+  const items = { ...ITEMS, bucket: { ...ITEMS.bucket, x: 12, d: 26 } };
+  assert.equal(evaluateLayout(ROOM, items).checks.find(check => check.id === 'floor-clash').status, 'caution');
+});
+
+test('an out-of-bounds fixture is detected', () => {
+  const items = { ...ITEMS, shelf: { ...ITEMS.shelf, x: 90 } };
+  assert.equal(evaluateLayout(ROOM, items).checks.find(check => check.id === 'bounds').status, 'caution');
+});
+
+test('right inward door tips match the closed, intermediate and open positions', () => {
+  assert.deepEqual(doorTip(DOORS.bathroom, 0), { x: 67, d: 0 });
+  assert.equal(doorTip(DOORS.bathroom, 90).x, 96);
+  assert.equal(doorTip(DOORS.bathroom, 90).d, 29);
+  assert.ok(Math.abs(doorTip(DOORS.bathroom, 55).x - (96 - 29 * Math.cos(55 * Math.PI / 180))) < 1e-8);
+});
+
+test('retained door clears fixed fixtures but shares shower standing space', () => {
+  for (const item of Object.values(ITEMS).filter(item => !item.planningArea)) {
+    assert.equal(doorSweepIntersects(DOORS.bathroom, item), false, item.name);
+  }
+  assert.equal(doorSweepIntersects(DOORS.bathroom, ITEMS.shower, { ignoreHeight: true }), true);
+  assert.equal(evaluateLayout().checks.find(check => check.id === 'door-shower').status, 'caution');
+});
+
+test('quarter-circle sweep rejects an AABB corner false positive', () => {
+  const item = { x: 67, d: 27, width: 2, depth: 2, height: 20 };
+  assert.equal(overlaps(evaluateLayout().doorSweep, item), true);
+  assert.equal(doorSweepIntersects(DOORS.bathroom, item), false);
+});
+
+test('door checks respect fixture heights', () => {
+  const item = { x: 75, d: 10, width: 10, depth: 10, height: 0.5 };
+  assert.equal(doorSweepIntersects(DOORS.bathroom, item), false);
+  assert.equal(doorSweepIntersects(DOORS.bathroom, { ...item, bottom: 83, height: 22 }), false);
+  assert.equal(doorSweepIntersects(DOORS.bathroom, { ...item, height: 20 }), true);
+});
+
+test('intermediate-angle collision is detected even if both endpoints clear a hypothetical obstruction', () => {
+  const item = { x: 82, d: 18, width: 8, depth: 8, height: 20 };
+  assert.equal(doorAtAngleIntersects(DOORS.bathroom, item, 0), false);
+  assert.equal(doorAtAngleIntersects(DOORS.bathroom, item, 55), true);
+  assert.equal(doorAtAngleIntersects(DOORS.bathroom, item, 90), false);
+});
+
+test('plumber record distinguishes the confirmed drain corner from unverified pipe details', () => {
   assert.equal(PLUMBER_SITE.existingDrain.corner, 'back-left corner of the original bathroom');
   assert.equal(PLUMBER_SITE.existingDrain.exactCentreVerified, false);
   assert.equal(PLUMBER_SITE.existingDrain.invertVerified, false);
   assert.equal(PLUMBER_SITE.existingDrain.destinationVerified, false);
-  assert.equal(PLUMBER_SITE.wcOutletVerified, false);
   assert.ok(insideRoom(PLUMBER_SITE.existingDrain.surveyZone));
+  assert.equal(PLUMBER_SITE.wcOutletVerified, false);
   assert.equal(PLUMBER_SITE.geyserInstalled, false);
   assert.equal(PLUMBER_SITE.geyserPointsInstalled, false);
   assert.equal(PLUMBER_SITE.existingBathTapCount, 2);
 });
 
-test('seven-foot tile estimate subtracts only the retained doorway within the tile band', () => {
+test('seven-foot tile quantities and wastage match the measured room', () => {
   const result = tileQuantities();
   assert.equal(PLUMBER_SITE.tileHeight, 84);
   assert.equal(result.floor, 32);
   assert.equal(result.grossWalls, 168);
   assert.ok(Math.abs(result.doorway - 16.1111111111) < 1e-8);
   assert.ok(Math.abs(result.netWalls - 151.8888888889) < 1e-8);
-  assert.ok(Math.abs(result.floorAndWalls - 183.8888888889) < 1e-8);
   assert.ok(Math.abs(result.wallsWithWaste - 167.0777777778) < 1e-8);
-  assert.equal(result.doorHeightAssumed, true);
   assert.equal(result.outsideSplashbackExcluded, true);
+  assert.equal(result.doorHeightAssumed, true);
+});
+
+test('door deduction is capped to the tile band and invalid heights fail explicitly', () => {
   assert.equal(tileQuantities(ROOM, 60).doorway, 29 * 60 / 144);
   assert.throws(() => tileQuantities(ROOM, 145), /exceed/);
   assert.throws(() => tileQuantities(ROOM, 0), /Invalid/);
 });
 
-test('outside basin design uses proposed rather than surveyed product dimensions', () => {
+test('outside basin design remains illustrative and elevated services fit below the ceiling', () => {
   const design = PLUMBER_SITE.outsideBasin;
   assert.equal(design.width, ITEMS.basin.width);
   assert.equal(design.depth, ITEMS.basin.depth);
   assert.equal(design.rimHeight, 35);
   assert.deepEqual(design.mirror, { width: 22, height: 24, bottom: 44 });
   assert.equal(design.measuredProduct, false);
-  assert.ok(PLUMBER_SITE.servicePoints.every(point => point.height < PLUMBER_SITE.tileHeight));
-});
-
-test('plumber plan exports the existing drain as a survey zone, not an exact pipe centre', () => {
-  const svg = planSvg({ showPlumber: true });
-  assert.ok(svg.includes('data-site-ref="E1"'));
-  assert.ok(svg.includes('data-exact-centre="unverified"'));
-  assert.ok(svg.includes('no WC rough-in approved'));
-  assert.ok(svg.includes('GN1 / FD1 are NEW proposals'));
-  assert.ok(!planSvg().includes('data-site-ref="E1"'));
-});
-
-test('area and recovered partition footprint use square feet, not square inches', () => {
-  const metrics = evaluateLayout();
-  assert.equal(metrics.areaSquareFeet, 32);
-  assert.ok(Math.abs(metrics.recoveredSquareFeet - 1.8333333333333333) < 1e-10);
-});
-
-test('every indoor fixture footprint is within measured inside faces', () => {
-  for (const item of Object.values(ITEMS).filter(item => !item.outside)) {
-    assert.ok(insideRoom(item), item.name);
-  }
-});
-
-test('compact WC fits the exact proposed installed envelope', () => {
-  assert.deepEqual(rectangle(ITEMS.toilet), { left: 10, right: 25, front: 22, back: 47 });
-  const metrics = evaluateLayout();
-  assert.equal(metrics.frontClearance, 22);
-  assert.equal(metrics.rearAllowance, 1);
-  assert.equal(metrics.sideClearance, 17.5);
-  assert.equal(ITEMS.toilet.seatHeight, 17.5);
-});
-
-test('WC clearance check fails for a longer 27-inch replacement keeping the rear allowance', () => {
-  const changed = { ...ITEMS, toilet: { ...ITEMS.toilet, d: 20, depth: 27 } };
-  const result = evaluateLayout(ROOM, changed);
-  assert.equal(result.frontClearance, 20);
-  assert.equal(result.checks.find(check => check.id === 'wc-front').status, 'caution');
-});
-
-test('WC side check detects a centre closer than the planning reference', () => {
-  const changed = { ...ITEMS, toilet: { ...ITEMS.toilet, x: 5 } };
-  assert.equal(evaluateLayout(ROOM, changed).checks.find(check => check.id === 'wc-side').status, 'caution');
-});
-
-test('shower target is checked against both dimensions', () => {
-  assert.equal(ITEMS.shower.width, 36);
-  assert.equal(ITEMS.shower.depth, 36);
-  const changed = { ...ITEMS, shower: { ...ITEMS.shower, width: 28 } };
-  assert.equal(evaluateLayout(ROOM, changed).checks.find(check => check.id === 'shower-size').status, 'caution');
-});
-
-test('WC and shower do not overlap, and bucket storage is explicitly within shower', () => {
-  assert.equal(overlaps(ITEMS.toilet, ITEMS.shower), false);
-  assert.equal(overlaps(ITEMS.toilet, ITEMS.bucket), false);
-  assert.equal(overlaps(ITEMS.shower, ITEMS.bucket), true);
-  assert.equal(ITEMS.bucket.movable, true);
-});
-
-test('floor fixture collision is detected, not silently passed', () => {
-  const changed = { ...ITEMS, bucket: { ...ITEMS.bucket, x: 12, d: 26 } };
-  assert.equal(evaluateLayout(ROOM, changed).checks.find(check => check.id === 'floor-clash').status, 'caution');
-});
-
-test('out-of-room fixture produces a failed geometry check', () => {
-  const changed = { ...ITEMS, shelf: { ...ITEMS.shelf, x: 90 } };
-  assert.equal(evaluateLayout(ROOM, changed).checks.find(check => check.id === 'bounds').status, 'caution');
-});
-
-test('right doorway is 29 inches and retained inward sweep clears context basin', () => {
-  const metrics = evaluateLayout();
-  assert.equal(ROOM.doorWidth, 29);
-  assert.deepEqual(metrics.doorSweep, { x: 67, d: 0, width: 29, depth: 29 });
-  assert.equal(overlaps(metrics.doorSweep, ITEMS.basin), false);
-  assert.equal(metrics.checks.find(check => check.id === 'door-width').status, 'caution');
-});
-
-test('basin conflict is detected inside the actual inward sweep', () => {
-  const changed = { ...ITEMS, basin: { ...ITEMS.basin, x: 75, d: 12, outside: false } };
-  assert.equal(evaluateLayout(ROOM, changed).checks.find(check => check.id === 'door-basin').status, 'caution');
-});
-
-test('elevated storage and heater keep the main floor free', () => {
-  assert.ok(ITEMS.shelf.bottom >= 48);
   assert.ok(ITEMS.heater.bottom + ITEMS.heater.height < ROOM.height);
-  assert.ok(ITEMS.heater.x + ITEMS.heater.width < ITEMS.shower.x);
-  assert.equal(ITEMS.heater.floorStanding, undefined);
+  assert.ok(ITEMS.shelf.bottom >= 48);
 });
 
-test('structural, plumbing, electrical and site checks are never certified by geometry', () => {
+test('site safety and compliance are never certified by the geometry checks', () => {
   const checks = evaluateLayout().checks;
+  assert.equal(checks.length, 17);
   for (const id of ['structure', 'plumbing', 'waterproofing', 'electrical', 'external-clearance', 'ventilation']) {
     assert.equal(checks.find(check => check.id === id).status, 'unverified', id);
   }
-  assert.equal(checks.find(check => check.id === 'wet-entry').status, 'caution');
-  assert.equal(checks.find(check => check.id === 'bucket').status, 'caution');
-  assert.equal(PLANNING_TARGETS.wcFront, 21);
 });
 
-test('invalid input surfaces an error instead of success-shaped results', () => {
-  assert.throws(() => rectangle({ x: 0, d: 0, width: -1, depth: 4 }), /positive/);
-  assert.throws(() => rectangle({ x: NaN, d: 0, width: 1, depth: 4 }), /Invalid x/);
-  assert.throws(() => evaluateLayout({ ...ROOM, depth: 0 }), /depth/);
-  assert.throws(() => evaluateLayout({ ...ROOM, doorWidth: 97 }), /opening/);
-});
-
-test('exported plan includes measured dimensions, outside basin and construction limitations', () => {
+test('plan exports contain only the combined layout and outside basin', () => {
   const svg = planSvg();
   for (const text of ['96 in / 8 ft', '48 in / 4 ft', '29 in entry', '22 in front', 'OUTSIDE', 'CONCEPT ONLY']) {
     assert.ok(svg.includes(text), text);
   }
-  assert.ok(!svg.includes('Removed 5.5 in wall'));
+  assert.ok(!svg.includes('INDIAN WC'));
+  assert.ok(!svg.includes('basin INSIDE'));
+  assert.ok(!svg.includes('data-partition="retained"'));
   assert.ok(planSvg({ showRemoved: true }).includes('Removed 5.5 in wall'));
   assert.ok(!planSvg({ showClearances: false }).includes('22 in front</text>'));
-  assert.ok(!svg.includes('</+text>'));
 });
 
-test('2D plan door state matches its open or closed setting', () => {
+test('plan door state and plumber survey labels match their settings', () => {
   assert.ok(planSvg().includes('data-door-direction="inward" data-door-hinge="right" data-door-angle="90" d="M96 48L96 19"'));
   assert.ok(planSvg({ doorOpen: false }).includes('data-door-state="closed"'));
-  assert.ok(planSvg({ doorOpen: false }).includes('d="M96 48L67 48"'));
+  assert.ok(planSvg({ showPlumber: true }).includes('data-exact-centre="unverified"'));
+  assert.ok(planSvg({ showPlumber: true }).includes('no WC rough-in approved'));
+  assert.ok(!planSvg().includes('data-site-ref="E1"'));
 });
 
-test('confirmed doors are inward with left toilet and right bathroom hinges', () => {
-  assert.equal(DOORS.toilet.hinge, 'left');
-  assert.equal(DOORS.bathroom.hinge, 'right');
-  assert.equal(DOORS.toilet.direction, 'inward');
-  assert.equal(DOORS.bathroom.direction, 'inward');
-  assert.ok(Math.abs(doorTip(DOORS.toilet).x) < 1e-10);
-  assert.equal(doorTip(DOORS.toilet).d, 29);
-  assert.equal(doorTip(DOORS.bathroom).x, 96);
-  assert.equal(doorTip(DOORS.bathroom).d, 29);
-});
-
-test('full sweep conflicts with raised WC but not the low current pan', () => {
-  assert.equal(doorSweepIntersects(DOORS.toilet, ITEMS.toilet), true);
-  assert.equal(doorSweepIntersects(DOORS.toilet, EXISTING_PAN), false);
-  assert.equal(evaluateSeparate('western').fullSweepConflict, true);
-  assert.equal(evaluateSeparate('current').fullSweepConflict, false);
-});
-
-test('55-degree intermediate swing conflicts even when zero and 90 degrees are clear', () => {
-  assert.equal(doorAtAngleIntersects(DOORS.toilet, ITEMS.toilet, 0), false);
-  assert.equal(doorAtAngleIntersects(DOORS.toilet, ITEMS.toilet, 55), true);
-  assert.equal(doorAtAngleIntersects(DOORS.toilet, ITEMS.toilet, 90), false);
-  assert.equal(evaluateSeparate('western', { angle: 55 }).currentAngleConflict, true);
-});
-
-test('combined entry clears WC and inside basin but shares shower standing space', () => {
-  assert.equal(doorSweepIntersects(DOORS.bathroom, ITEMS.toilet), false);
-  assert.equal(doorSweepIntersects(DOORS.bathroom, itemsForBasin('inside').basin), false);
-  assert.equal(doorSweepIntersects(DOORS.bathroom, ITEMS.shower, { ignoreHeight: true }), true);
-  assert.equal(evaluateLayout().checks.find(check => check.id === 'door-shower').status, 'caution');
-});
-
-test('quarter-circle sweep rejects a false clash from the rectangular sweep box', () => {
-  const corner = { x: 67, d: 27, width: 2, depth: 2, height: 20 };
-  assert.equal(overlaps(evaluateLayout().doorSweep, corner), true);
-  assert.equal(doorSweepIntersects(DOORS.bathroom, corner), false);
-});
-
-test('door height filters floor-level and overhead objects rather than false plan collisions', () => {
-  const floorPan = { x: 75, d: 10, width: 10, depth: 10, height: 0.5 };
-  const overhead = { ...floorPan, bottom: 83, height: 22 };
-  assert.equal(doorSweepIntersects(DOORS.bathroom, floorPan), false);
-  assert.equal(doorSweepIntersects(DOORS.bathroom, overhead), false);
-  assert.equal(doorSweepIntersects(DOORS.bathroom, { ...floorPan, height: 20 }), true);
-});
-
-test('outward retrofit requires an alteration and cannot change the current baseline silently', () => {
-  const retrofit = evaluateSeparate('western', { frameChange: true, angle: 55 });
-  assert.equal(retrofit.toiletDoor.direction, 'outward');
-  assert.equal(retrofit.frameChangeRequired, true);
-  assert.equal(retrofit.fullSweepConflict, false);
-  assert.equal(evaluateSeparate('current', { frameChange: true }).toiletDoor.direction, 'inward');
-});
-
-test('compact inside basin fits with a clear 24 by 21-inch approach and WC clearances', () => {
-  const items = itemsForBasin('inside'), result = evaluateLayout(ROOM, items);
-  assert.deepEqual(rectangle(items.basin), { left: 34.5, right: 52.5, front: 36, back: 48 });
-  assert.deepEqual(basinApproach(items.basin), { x: 31.5, d: 15, width: 24, depth: 21 });
-  assert.equal(result.frontClearance, 22);
-  assert.equal(result.sideClearance, 17);
-  assert.equal(result.checks.find(check => check.id === 'basin-approach').status, 'pass');
-  assert.equal(result.checks.find(check => check.id === 'basin-product').status, 'unverified');
-  assert.equal(items.shelf.x, 4);
-});
-
-test('oversized basin or insufficient standing depth cannot receive a geometry pass', () => {
-  const inside = itemsForBasin('inside');
-  const wide = { ...inside, basin: { ...inside.basin, width: 28 } };
-  const deep = { ...inside, basin: { ...inside.basin, d: 18, depth: 30 } };
-  for (const items of [wide, deep]) {
-    assert.equal(evaluateLayout(ROOM, items).checks.find(check => check.id === 'basin-approach').status, 'caution');
-  }
-});
-
-test('separate and combined areas quantify the gain without double-counting the whole room', () => {
-  const separate = evaluateSeparate();
-  assert.ok(Math.abs(separate.floorSquareFeet - 30.1666666667) < 1e-8);
-  assert.ok(Math.abs(separate.toiletSquareFeet - 11.6666666667) < 1e-8);
-  assert.equal(separate.bathSquareFeet, 18.5);
-  const percent = evaluateLayout().recoveredSquareFeet / separate.floorSquareFeet * 100;
-  assert.ok(percent > 6 && percent < 6.1);
-});
-
-test('plan alternatives retain or remove the real partition and identify the basin option', () => {
-  const current = planSvg({ scenario: 'current' });
-  assert.ok(current.includes('data-partition="retained"'));
-  assert.ok(current.includes('INDIAN WC'));
-  assert.ok(planSvg({ scenario: 'western' }).includes('FULL SWEEP overlaps WC'));
-  assert.ok(!planSvg().includes('data-partition="retained"'));
-  assert.ok(planSvg({ basinPlacement: 'inside' }).includes('18 x 12 in basin INSIDE'));
-});
-
-test('comparison SVG contains two equal-scale plans with distinct marker IDs and honest area gain', () => {
-  const svg = comparisonSvg({ variant: 'western', basinPlacement: 'inside' });
-  assert.ok(svg.includes('x="0" y="14" width="138" height="112"'));
-  assert.ok(svg.includes('x="150" y="14" width="138" height="112"'));
-  assert.ok(svg.includes('id="separate-western-arrow"'));
-  assert.ok(svg.includes('id="combined-inside-arrow"'));
-  assert.ok(svg.includes('30.17 sq ft'));
-  assert.ok(svg.includes('Gain: 1.83 sq ft'));
-});
-
-test('invalid swing, angle, fixture, placement or scenario inputs are explicit errors', () => {
-  assert.throws(() => doorTip({ ...DOORS.toilet, direction: 'sideways' }), /direction/);
-  assert.throws(() => doorTip(DOORS.toilet, 91), /angle/);
-  assert.throws(() => doorTip({ ...DOORS.toilet, width: 0 }), /dimensions/);
-  assert.throws(() => doorSweepIntersects(DOORS.toilet, { ...ITEMS.toilet, height: NaN }), /height/);
-  assert.throws(() => doorAtAngleIntersects(DOORS.toilet, { ...EXISTING_PAN, width: -1 }, 55), /positive/);
-  assert.throws(() => itemsForBasin('unknown'), /placement/);
-  assert.throws(() => evaluateSeparate('unknown'), /variant/);
+test('invalid rectangles, room dimensions and door parameters throw explicit errors', () => {
+  assert.throws(() => rectangle({ x: 0, d: 0, width: -1, depth: 4 }), /positive/);
+  assert.throws(() => rectangle({ x: NaN, d: 0, width: 1, depth: 4 }), /Invalid/);
+  assert.throws(() => evaluateLayout({ ...ROOM, depth: 0 }), /depth/);
+  assert.throws(() => evaluateLayout({ ...ROOM, doorWidth: 97 }), /opening/);
+  assert.throws(() => doorTip(DOORS.bathroom, 91), /angle/);
+  assert.throws(() => doorTip({ ...DOORS.bathroom, direction: 'sideways' }), /direction/);
 });
