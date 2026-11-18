@@ -66,12 +66,9 @@ export const PLANNING_TARGETS = Object.freeze({
   wcCenterToSideWall: 15,
   showerSide: 30,
   preferredDoor: 32,
-  basinFront: 21,
-  basinApproachWidth: 24,
 });
 
 export const DOORS = Object.freeze({
-  toilet: { x: 0, width: 29, hinge: 'left', direction: 'inward', bottom: 1, top: 80 },
   bathroom: { x: 67, width: 29, hinge: 'right', direction: 'inward', bottom: 1, top: 80 },
 });
 
@@ -124,32 +121,6 @@ export function tileQuantities(room = ROOM, tileHeight = PLUMBER_SITE.tileHeight
     wallsWithWaste: netWalls * 1.1,
     outsideSplashbackExcluded: true,
     doorHeightAssumed: true,
-  };
-}
-
-export const INSIDE_BASIN = Object.freeze({
-  name: 'Compact inside handbasin',
-  category: 'Optional / assumed compact product, not the measured existing basin',
-  x: 34.5, d: 36, width: 18, depth: 12, bottom: 29, height: 9,
-  description: 'Optional 18 x 12-inch wall-hung handbasin on the BACK wall, between the WC and shower. Its assumed 24 x 21-inch approach area stays clear of the WC and shower planning footprint. The shelf moves above the WC and a small mirror is added. Existing basin dimensions are unknown: this does not prove that the existing basin can be reused here.',
-});
-
-export const EXISTING_PAN = Object.freeze({
-  name: 'Current Indian / squat pan',
-  category: 'Existing / pan size and height illustrative',
-  x: 7.5, d: 22, width: 20, depth: 24, height: 0.5,
-  description: 'Floor-level squat pan and rear cistern, reconstructed from the photographs. Only room sizes and door directions/hinges are confirmed; pan dimensions and installation levels are illustrative. A door can pass above a low pan but collide with a raised seated WC.',
-});
-
-export function itemsForBasin(placement = 'outside') {
-  if (!['outside', 'inside'].includes(placement)) throw new RangeError('Unknown basin placement.');
-  return placement === 'outside' ? ITEMS : {
-    ...ITEMS,
-    basin: INSIDE_BASIN,
-    shelf: {
-      ...ITEMS.shelf, x: 4,
-      description: 'The 20 x 7-inch shelf moves to the rear wall above the WC, leaving room for the optional basin and mirror. Its mounting and actual head/service clearances still need checking on site.',
-    },
   };
 }
 
@@ -219,36 +190,6 @@ export function doorAtAngleIntersects(door, item, angle) {
   return true;
 }
 
-export function basinApproach(basin) {
-  return {
-    x: basin.x + basin.width / 2 - PLANNING_TARGETS.basinApproachWidth / 2,
-    d: basin.d - PLANNING_TARGETS.basinFront,
-    width: PLANNING_TARGETS.basinApproachWidth,
-    depth: PLANNING_TARGETS.basinFront,
-  };
-}
-
-export function evaluateSeparate(variant = 'current', { frameChange = false, angle = 90 } = {}) {
-  if (!['current', 'western'].includes(variant)) throw new RangeError('Unknown separate-room variant.');
-  const toiletDoor = {
-    ...DOORS.toilet,
-    direction: variant === 'western' && frameChange ? 'outward' : 'inward',
-  };
-  const pan = variant === 'western' ? ITEMS.toilet : EXISTING_PAN;
-  return {
-    variant,
-    toiletDoor,
-    floorSquareFeet: (ROOM.originalToiletWidth + ROOM.originalBathWidth) * ROOM.depth / 144,
-    toiletSquareFeet: ROOM.originalToiletWidth * ROOM.depth / 144,
-    bathSquareFeet: ROOM.originalBathWidth * ROOM.depth / 144,
-    fullSweepConflict: doorSweepIntersects(toiletDoor, pan),
-    currentAngleConflict: doorAtAngleIntersects(toiletDoor, pan, angle),
-    frameChangeRequired: variant === 'western' && frameChange,
-    wcFrontClearance: variant === 'western' ? ITEMS.toilet.d : null,
-    wcSideClearance: variant === 'western' ? 17.5 : null,
-  };
-}
-
 export function rectangle(item) {
   for (const key of ['x', 'd', 'width', 'depth']) {
     if (!Number.isFinite(item[key])) throw new TypeError(`Invalid ${key} in layout rectangle.`);
@@ -279,9 +220,7 @@ export function evaluateLayout(room = ROOM, items = ITEMS) {
   const wcBounds = rectangle(wc);
   const center = wc.x + wc.width / 2;
   const frontClearance = wcBounds.front;
-  const basinBounds = rectangle(items.basin);
-  const adjacentBasin = !items.basin.outside && basinBounds.front < wcBounds.back && basinBounds.back > wcBounds.front;
-  const sideClearance = Math.min(center, room.width - center, adjacentBasin ? Math.max(0, basinBounds.left - center) : Infinity);
+  const sideClearance = Math.min(center, room.width - center);
   const retainedDoor = { ...DOORS.bathroom, x: room.width - room.doorWidth, width: room.doorWidth, top: room.doorHeight };
   const doorSweep = {
     x: room.width - room.doorWidth,
@@ -310,8 +249,8 @@ export function evaluateLayout(room = ROOM, items = ITEMS) {
     },
     {
       id: 'wc-side', status: sideClearance >= PLANNING_TARGETS.wcCenterToSideWall ? 'pass' : 'caution',
-      title: `WC centre to nearest side wall / basin edge: ${sideClearance} in`,
-      detail: `Compared with a ${PLANNING_TARGETS.wcCenterToSideWall}-inch planning reference. The optional basin is treated as a side obstruction; its position must be checked against the actual WC.`,
+      title: `WC centre to nearest side wall: ${sideClearance} in`,
+      detail: `Compared with a ${PLANNING_TARGETS.wcCenterToSideWall}-inch planning reference. The washbasin stays outside the combined room.`,
     },
     {
       id: 'shower-size',
@@ -372,21 +311,6 @@ export function evaluateLayout(room = ROOM, items = ITEMS) {
       detail: 'No window or vent was measured. Confirm suitable ventilation, local requirements and approval for the final room arrangement.',
     },
   ];
-  if (!items.basin.outside) {
-    const approach = basinApproach(items.basin);
-    const approachFits = insideRoom(approach, room) && !overlaps(approach, wc)
-      && !overlaps(approach, items.shower) && !overlaps(items.basin, wc) && !overlaps(items.basin, items.shower);
-    checks.splice(7, 0,
-      {
-        id: 'basin-approach', status: approachFits ? 'pass' : 'caution',
-        title: `Inside basin: ${items.basin.width} x ${items.basin.depth} in, with a 24 x 21-in approach`,
-        detail: 'A shallow back-wall handbasin fits the assumed envelopes without reducing the 22-inch WC front clearance. Approach space is shared circulation, not a second-person occupancy claim or local-code approval.',
-      },
-      {
-        id: 'basin-product', status: 'unverified', title: 'Existing basin size and reuse are not established',
-        detail: 'The existing basin was not measured. The inside option is a compact illustrative product, not proof that the existing basin fits. Confirm its actual width/projection, outlet, taps, mirror, shelf and geyser service/electrical clearances.',
-      });
-  }
   return {
     areaSquareFeet: room.width * room.depth / 144,
     recoveredSquareFeet: room.removedWallWidth * room.depth / 144,
@@ -421,11 +345,10 @@ function svgWc() {
 
 function svgBasin(basin) {
   const x = basin.x + basin.width / 2, y = 48 - basin.d - basin.depth / 2;
-  return `<g data-basin-location="${basin.outside ? 'outside' : 'inside'}">
+  return `<g data-basin-location="outside">
     <rect x="${basin.x}" y="${48 - basin.d - basin.depth}" width="${basin.width}" height="${basin.depth}" rx="2" fill="#fffdf8" stroke="#8a9990" stroke-width=".5"/>
     <ellipse cx="${x}" cy="${y}" rx="${basin.width * 0.35}" ry="${basin.depth * 0.3}" fill="#d5ddda"/>
-    <text x="${x}" y="${basin.outside ? 71 : 18}" text-anchor="middle" font-size="2.6">${basin.outside ? 'Existing basin OUTSIDE' : '18 x 12 in basin INSIDE'}</text>
-    ${basin.outside ? '' : '<text x="43.5" y="23" text-anchor="middle" font-size="2.4">Mirror / geyser above</text>'}
+    <text x="${x}" y="71" text-anchor="middle" font-size="2.6">Existing basin OUTSIDE</text>
   </g>`;
 }
 
@@ -466,39 +389,11 @@ function svgDrainSurvey() {
 
 export function planSvg({
   showRemoved = false, showClearances = true, doorOpen = true,
-  doorAngle = doorOpen ? 90 : 0, basinPlacement = 'outside',
-  scenario = 'combined', frameChange = false, showPlumber = false,
+  doorAngle = doorOpen ? 90 : 0, showPlumber = false,
 } = {}) {
-  if (scenario !== 'combined') {
-    const separate = evaluateSeparate(scenario, { frameChange, angle: doorAngle });
-    const warning = separate.fullSweepConflict
-      ? 'FULL SWEEP overlaps WC: not a drop-in replacement.'
-      : separate.frameChangeRequired ? 'Outward option needs frame rework + outside checks.' : 'Current fixture sizes illustrative; both doors open inward.';
-    const pan = scenario === 'western' ? svgWc() : `<g data-item="squat-pan">
-      <rect x="7.5" y="2" width="20" height="24" rx="1" fill="#fffdf8" stroke="#8b958a" stroke-width=".4"/>
-      <ellipse cx="17.5" cy="14" rx="3.1" ry="7" fill="#8f9e94"/>
-      <rect x="9" y="6" width="4" height="16" fill="#dbe0d5"/><rect x="22" y="6" width="4" height="16" fill="#dbe0d5"/>
-      <rect x="8.5" y="0" width="18" height="5" fill="none" stroke="#8b958a" stroke-dasharray="1 1"/>
-      <text x="17.5" y="31" text-anchor="middle" font-weight="bold">INDIAN WC</text></g>`;
-    const content = `<rect data-partition="retained" x="35" y="0" width="5.5" height="48" fill="#b6ae9b" stroke="#6b7364" stroke-width=".4"/>
-      <path d="M0 48V0H96V48M29 48H67" fill="none" stroke="#344b41" stroke-width="1.5"/>
-      ${showClearances && scenario === 'western' ? '<rect x="2.5" y="26" width="30" height="22" fill="#a2c2d7" fill-opacity=".22" stroke="#7092a8" stroke-dasharray="1 1"/><text x="17.5" y="40" text-anchor="middle">22 in front</text>' : ''}
-      ${pan}<circle cx="55" cy="33" r="5.5" fill="#f3e5c4" stroke="#ac8d52" stroke-width=".4"/>
-      <path d="M65.5 1V4M71 1V4" stroke="#8f773d" stroke-width="1"/>
-      <text x="68" y="19" text-anchor="middle" font-weight="bold">BATH ROOM</text>
-      <text x="17.5" y="-2" text-anchor="middle">35 in clear</text><text x="68.25" y="-2" text-anchor="middle">55.5 in clear</text>
-      ${svgBasin(ITEMS.basin)}
-      ${svgDoor(separate.toiletDoor, doorAngle, 'toilet', separate.fullSweepConflict)}
-      ${svgDoor(DOORS.bathroom, doorAngle, 'bathroom')}${showPlumber ? svgDrainSurvey() : ''}
-      <text x="0" y="77" font-size="2.5" fill="${separate.fullSweepConflict ? '#ad4837' : '#6d7f68'}">${warning}</text>`;
-    return svgFrame(content, `separate-${scenario}`, scenario === 'western' ? 'Separate rooms with a compact Western WC: test fit' : 'Current separate toilet and bathroom: measured room reconstruction',
-      '35-inch toilet and 55.5-inch bath with a 5.5-inch dividing wall. Fixture sizes assumed. Full door sweep must be checked, not only the fully open position.');
-  }
-  const items = itemsForBasin(basinPlacement);
-  const approach = basinApproach(items.basin);
+  const items = ITEMS;
   const content = `<rect x="60" y="0" width="36" height="36" fill="#b9d1c5" fill-opacity=".72" stroke="#688b7b" stroke-dasharray="1.5 1"/>
     ${showClearances ? '<rect x="2.5" y="26" width="30" height="22" fill="#a2c2d7" fill-opacity=".25" stroke="#7092a8" stroke-dasharray="1 1"/><text x="34" y="38" font-size="2.8">22 in front</text>' : ''}
-    ${showClearances && basinPlacement === 'inside' ? `<rect x="${approach.x}" y="${48 - approach.d - approach.depth}" width="24" height="21" fill="#c3d7e2" fill-opacity=".32" stroke="#7092a8" stroke-dasharray="1 1"/><text x="43.5" y="30" text-anchor="middle" font-size="2.5">24 x 21 in approach</text>` : ''}
     ${showRemoved ? '<rect x="35" y="0" width="5.5" height="48" fill="#d78a64" fill-opacity=".25" stroke="#b16741" stroke-dasharray="2 1"/><text x="38" y="-2" text-anchor="middle" fill="#9d593c">Removed 5.5 in wall</text>' : ''}
     <path d="M0 48V0H96V48M0 48H67" fill="none" stroke="#344b41" stroke-width="1.5"/>
     <path d="M0 48H29" stroke="#be9165" stroke-width="1.5"/>
@@ -507,24 +402,11 @@ export function planSvg({
     <rect x="63" y="1" width="30" height="1.5" rx=".5" fill="#5b6860"/>
     <circle cx="89" cy="9" r="5.5" fill="#f3e5c4" stroke="#ac8d52" stroke-width=".4"/>
     <rect x="${items.shelf.x}" y="0" width="20" height="7" fill="#b7a785" fill-opacity=".35" stroke="#9b8e70" stroke-dasharray="1 1"/>
-    ${basinPlacement === 'outside' ? '<circle cx="47.5" cy="7.5" r="7" fill="#faf9f2" stroke="#9eaa9f" stroke-width=".5" stroke-dasharray="1 1"/><text x="47.5" y="19" text-anchor="middle" font-size="2.6">Geyser above</text>' : ''}
+    <circle cx="47.5" cy="7.5" r="7" fill="#faf9f2" stroke="#9eaa9f" stroke-width=".5" stroke-dasharray="1 1"/><text x="47.5" y="19" text-anchor="middle" font-size="2.6">Future GN1 above</text>
     ${svgBasin(items.basin)}${svgDoor(DOORS.bathroom, doorAngle, 'bathroom')}${showPlumber ? svgDrainSurvey() : ''}
     ${showPlumber ? '<text x="46" y="32" text-anchor="middle" font-size="2.4" fill="#8b5834">P1: no WC rough-in approved</text><text x="46" y="36" text-anchor="middle" font-size="2.4">GN1 / FD1 are NEW proposals</text>' : ''}
     <text x="14.5" y="56" text-anchor="middle" fill="#956d3f" font-size="2.5">Old door closed</text>
-    <text x="0" y="77" font-size="2.5">Right door retained inward. Basin ${basinPlacement}; actual basin size unmeasured.</text>`;
-  return svgFrame(content, `combined-${basinPlacement}`, `Combined bathroom, basin ${basinPlacement}: 96 x 48 inches`,
-    'Right-hinged 29-inch door retained opening inward. Compact WC has 22-inch front clearance. Optional inside basin is an assumed 18 x 12-inch product, not a measured existing fixture.');
-}
-
-export function comparisonSvg(options = {}) {
-  const left = planSvg({ ...options, scenario: options.variant ?? 'current' });
-  const right = planSvg({ ...options, scenario: 'combined' });
-  const place = (svg, x) => svg.replace('<svg ', `<svg x="${x}" y="14" width="138" height="112" `);
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 288 133" role="img" aria-label="Current or separate-Western rooms beside the combined bathroom">
-    <title>Bathroom options at the same scale</title><rect width="288" height="133" fill="#faf8f1"/>
-    <g font-family="Arial,sans-serif" fill="#263e35" font-size="4" font-weight="bold">
-    <text x="8" y="9">A. ${options.variant === 'western' ? 'Keep separate + seated WC' : 'Current separate rooms'}</text>
-    <text x="158" y="9">B. Combined / basin ${options.basinPlacement ?? 'outside'}</text></g>
-    ${place(left, 0)}${place(right, 150)}
-    <text x="8" y="131" font-family="Arial,sans-serif" font-size="3" fill="#566d5c">Same overall footprint. Existing clear floor 30.17 sq ft; combined 32 sq ft. Gain: 1.83 sq ft, not a doubled room.</text></svg>`;
+    <text x="0" y="77" font-size="2.5">Right door retained inward. Basin outside; actual basin size unmeasured.</text>`;
+  return svgFrame(content, 'combined-outside', 'Combined bathroom, basin outside: 96 x 48 inches',
+    'Right-hinged 29-inch door retained opening inward. Compact WC has 22-inch front clearance. Washbasin remains outside; product dimensions require site verification.');
 }
