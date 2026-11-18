@@ -23,6 +23,7 @@
         <button type="button" class="tab active" data-tab="layout" aria-pressed="true">Layout</button>
         <button type="button" class="tab" data-tab="checks" aria-pressed="false">Checks <span id="check-count"></span></button>
         <button type="button" class="tab" data-tab="decision" aria-pressed="false">Decision</button>
+        <button type="button" class="tab" data-tab="plumber" aria-pressed="false">Plumber</button>
         <button type="button" class="tab" data-tab="notes" aria-pressed="false">Read first</button>
       </nav>
       <section id="panel-layout" class="tab-panel" aria-label="Layout">
@@ -64,16 +65,38 @@
         <h4>The chokhat matters</h4><p>Changing left/right hinges does <strong>not</strong> change the direction allowed by an inward-only frame. Reversing the swing needs suitable frame/door work and outside clearance. A sliding door needs a usable parking run; the outside basin may obstruct that run. Neither alternative is automatically feasible.</p>
         <h4>Compare like with like</h4><p>The current reconstruction and proposed finishes are illustrative, not a quotation or exact product survey. New tiles, a shower, geyser and storage can also be added while keeping the wall; they are not benefits caused by combining the rooms.</p>
       </section>
+      <section id="panel-plumber" class="tab-panel notes-panel" aria-label="Plumber handover concept" hidden>
+        <span class="eyebrow">P1 / COMBINED ROOM / BASIN OUTSIDE</span>
+        <h3 style="margin-top:10px">A handover for your plumber.</h3>
+        <p>Use the same 3D model with the observed drain survey zone, indicative service points, outside basin design and <strong>84-inch / 7-foot tile line</strong>. Point markers are proposals, not drilling or pipe-hole coordinates.</p>
+        <div class="plumber-actions">
+          <button type="button" id="open-plumber-view">Open combined plumber view</button>
+          <button type="button" id="outside-basin-view">Outside washbasin 3D detail</button>
+          <a id="plumber-pdf" href="Plumber-Concept.pdf" target="_blank" rel="noopener">Open four-sheet plumber PDF</a>
+          <a id="plumber-print" href="Plumber-Concept.html" target="_blank" rel="noopener">Printable plan, services &amp; elevations</a>
+        </div>
+        <label class="check-control"><input id="tile-line" type="checkbox" checked><span>Show 7-foot tile-height guide in plumber mode</span></label>
+        <h4>What is now confirmed</h4>
+        <ul><li>The basin stays outside, between the original doors. Actual basin dimensions remain unmeasured.</li><li>E1 is at the <strong>back-left corner of the original bathroom</strong>, near the former partition. Its exact pipe centre, trap, invert and destination are not known.</li><li>The current bathroom has two taps. <strong>No geyser or geyser points exist.</strong> GN1 is new future provision.</li><li>The retained right door still opens inward. The old left doorway is proposed to be closed.</li></ul>
+        <h4>New work and unresolved connections</h4>
+        <p>HF1 health faucet, MX1 shower mixer and BT1 bucket tap are indicative coordination points. FD1 is a <strong>new shower-drain option</strong>, not existing E1. No drainage connection, pipe size, route, floor fall or WC rough-in is approved by this model. Do not connect WC soil into a bath floor drain.</p>
+        <h4>Outside washbasin concept</h4>
+        <p>Illustrative 18 x 14-inch wall-hung basin, rim 35 inches above the outside finished floor; 22 x 24-inch mirror; optional 30 x 50-inch splashback. Verify the actual basin, fixing template, trap, external floor and corridor before choosing products.</p>
+        <h4>Tile estimate</h4>
+        <p id="plumber-quantities"></p>
+        <div class="retrofit-warning"><strong>Construction hold:</strong> qualified on-site wall/service approval, selected WC and outlet, verified drainage/levels, waterproofing and qualified geyser/electrical review are required. The four-sheet pack includes blank site-record fields. This is a construction-design concept for discussion and quotation, not an instruction to start work.</div>
+      </section>
       <section id="panel-notes" class="tab-panel notes-panel" aria-label="Assumptions and safety" hidden>
         <h3>Measured, assumed, unverified.</h3>
         <h4>Confirmed by you</h4>
         <ul><li>Inside size: 96 &times; 48 inches; ceiling 12 feet / 144 inches.</li><li>Original clear widths: 35 and 55.5 inches. Both doorways: 29 inches.</li><li>Standing outside facing the doors: toilet hinges LEFT, bathroom hinges RIGHT. Both open INWARD.</li><li>The existing frames (chokhat) are inward-only. A hinge-side change alone will not reverse the swing.</li><li>The existing basin is outside, between the doors; its dimensions are unknown.</li><li>Plumbing relocation is acceptable in the combined concept. No demolition has been approved.</li></ul>
         <h4>Assumptions you can review</h4>
-        <ul><li>Both rooms have the same 48-inch clear depth. Partition thickness is inferred as 5.5 inches.</li><li>Seated WC: 15 inches wide, 25 inches installed projection, 1 inch behind it.</li><li>Doors: 80 inches high, 1-inch bottom clearance and 1.2-inch leaf thickness are illustrative. Jamb offsets were not measured.</li><li>The current squat-pan size, cistern, taps and bucket placement are reconstructed approximately from the photos, not surveyed as-built geometry.</li><li>Outer wall thickness is illustrated as 4 inches. The optional inside basin is an assumed 18 x 12-inch product, with a 24 x 21-inch planning approach.</li><li>Other fixture sizes, mirror and finishes are illustrative. Floor and side-clearance targets are planning references, not local-code certification.</li></ul>
+        <ul><li>Both rooms have the same 48-inch clear depth. Partition thickness is inferred as 5.5 inches.</li><li>Seated WC: 15 inches wide, 25-inch body depth PLUS a 1-inch rear allowance; total wall-to-front projection is 26 inches.</li><li>Doors: 80 inches high, 1-inch bottom clearance and 1.2-inch leaf thickness are illustrative. Jamb offsets were not measured.</li><li>The current squat-pan size, cistern, taps and bucket placement are reconstructed approximately from the photos, not surveyed as-built geometry.</li><li>Outer wall thickness is illustrated as 4 inches. The optional inside basin is an assumed 18 x 12-inch product, with a 24 x 21-inch planning approach.</li><li>Other fixture sizes, mirror and finishes are illustrative. Floor and side-clearance targets are planning references, not local-code certification.</li></ul>
         <h4 class="warning-title">Before any work begins</h4>
         <p>Have an on-site qualified professional verify the dividing wall and hidden services before approving removal. A plumber must verify the WC outlet, drainage, waterproofing and floor levels. A qualified electrician must review the geyser installation. Verify ventilation and local requirements.</p>
         <p>The room is an <strong>open wet room</strong>. A dry entrance is not promised. The floor is rendered flat; slopes and construction details are not engineered.</p>
         <p>The retained bathroom door opens inward in both views. The separate-Western outward-door checkbox is an <strong>alteration proposal</strong>, not the existing setup. Corridor space and slider parking space are unmeasured; the outside floor patch is context only.</p>
+        <p>Plumber revision P1 keeps the washbasin outside. It records the existing drain at the old bathroom back-left corner and confirms that no geyser or geyser points exist. The Plumber tab shows new proposed services separately from site-verification items.</p>
         <h4>Space gained</h4>
         <p>Existing net clear floor: <strong>30.17 sq ft</strong>. Combined floor: <strong>32 sq ft</strong>. Partition removal recovers <strong>1.83 sq ft, about 6.1%</strong>. It creates shared width, not a doubled footprint. Keeping separate preserves simultaneous toilet/bath use.</p>
         <h4>Controls</h4>
@@ -89,7 +112,7 @@
           <button type="button" data-view="inside" aria-pressed="false">Inside</button>
           <button type="button" data-view="plan" aria-pressed="false">2D plan</button>
         </div>
-        <div class="action-buttons"><button type="button" id="compare-toggle" aria-pressed="true">Compare: on</button><button type="button" id="door-toggle" aria-pressed="true">Door: open</button><button type="button" id="reset-view" title="Reset camera (H)">Reset view</button></div>
+        <div class="action-buttons"><button type="button" id="plumber-toggle" aria-pressed="false">Plumber: off</button><button type="button" id="compare-toggle" aria-pressed="true">Compare: on</button><button type="button" id="door-toggle" aria-pressed="true">Door: open</button><button type="button" id="reset-view" title="Reset camera (H)">Reset view</button></div>
       </div>
       <div id="canvas-host" class="canvas-host" aria-label="3D model: drag to rotate, scroll to zoom"></div>
       <div id="plan-host" class="plan-host" hidden></div>

@@ -1,8 +1,8 @@
 # Bathroom comparison verification
 
-Date: 2026-11-11
+Date: 2026-11-18
 
-**Model: 30 layout tests passed. Viewer: all 19 browser tests passed.**
+**Model: 34 layout tests passed. Viewer: all 22 browser tests passed.**
 
 These are checks of the digital model and application, not permission to build.
 Demolition, local-code/accessibility compliance, plumbing, waterproofing and
@@ -76,7 +76,7 @@ The sweep test is an envelope screen, not manufacturer-specific solid-body
 collision certification. A suitable different WC or altered door/frame solution
 may work. The model does not conclude that every Western WC is impossible.
 
-## 4. Layout test suite: 30 passed
+## 4. Layout test suite: 34 passed
 
 Run: `npm.cmd test`
 
@@ -94,8 +94,14 @@ Coverage includes:
 - Two equal-sized comparison SVGs with distinct marker IDs and honest area labels.
 - Explicit invalid-input errors, rather than success-shaped defaults.
 - Structural, drainage, waterproofing, electrical and other site checks remain unverified.
+- Plumber P1 distinguishes the owner-confirmed drain corner from unverified pipe centres,
+  WC rough-in and routes; geyser and points are explicitly not existing.
+- Tile quantities use the 84-inch tile band, cap the doorway deduction to that band,
+  identify the assumed door height and exclude outside splashback.
+- Outside basin/mirror sizes remain proposals; indicative service heights are checked.
+- Plumber plan exports identify E1 as a survey zone, not an exact pipe centre.
 
-## 5. Browser suite: 19 passed
+## 5. Browser suite: 22 passed
 
 Run: `npm.cmd run test:browser`
 
@@ -124,11 +130,18 @@ Environment: isolated headless Microsoft Edge / Chromium on Windows.
 17. Current-room mesh picking works; the Decision guide opens the real clash view.
 18. Exported comparison SVG preserves the selected seated-WC, inside-basin and door-angle settings.
 19. Phone touch orbit and two-finger pinch change the actual shared camera.
+20. Plumber mode uses the same scene, keeps the basin outside, displays the actual
+    84-inch world-space tile guide, distinguishes new/unknown services, and exports
+    the drain survey zone.
+21. Outside-basin detail view and printable handover links work; normal comparison
+    remains available.
+22. Printable handover has four valid sheets, valid SVGs, tile quantities and explicit
+    unresolved rough-in/levels.
 
 The default outside-basin combined option shows 17 design checks: 7 geometry
 passes, 4 cautions and 6 unverified site checks. The inside-basin option adds a
 geometry approach check and an unverified actual-product/reuse check.
-These design checks are distinct from the 30 unit tests and 19 browser tests.
+These design checks are distinct from the 34 unit tests and 22 browser tests.
 
 The Node 26 test tooling may emit a `module.register()` deprecation warning;
 the normal viewer browser console is clean. WebGL-failure QA intentionally
@@ -163,3 +176,21 @@ could not also be installed while keeping the partition.
 The planning references are not local-code certification. The room remains an
 open wet room, the bucket is movable shared-use storage, the rendered floor is
 flat, and no outside corridor area or construction approval is implied.
+
+## 8. Plumber print/PDF checks
+
+Run: `npm.cmd run handover:pdf`
+
+The generated PDF is verified with a PDF parser to contain exactly four A3 landscape
+pages. Browser print-layout checks verify page content stays above its footer, no
+page overflow, no drawing text outside its SVG, no application errors and no local
+file paths in the document text. The 1:20 plan's SVG viewport is 187.96 x 160.02 mm
+at A3/100%; its 1000-mm calibration bar is 50 mm on paper. Rear and outside-basin
+elevations and service schematics are explicitly not to scale.
+
+P1 keeps the washbasin outside and records the existing drain at the old bathroom's
+back-left corner. Exact pipe positions, inverts, traps and destination remain
+unverified. The current two taps do not establish an existing hot-water system;
+there is no existing geyser or geyser provision. The PDF includes blank site-record
+fields rather than fictitious installation dimensions. It is for discussion and
+quotation only and does not authorise construction.

@@ -28,6 +28,7 @@
     <text x="43.5" y="23" text-anchor="middle" font-size="2.4">Mirror / geyser above</text>
   </g><path d="M67 48A29 29 0 0 1 96 19" fill="none" stroke="#9f773e" stroke-dasharray="1.2 1" stroke-width=".5"/>
     <path data-door-key="bathroom" data-door-state="open" data-door-direction="inward" data-door-hinge="right" data-door-angle="90" d="M96 48L96 19" stroke="#9f773e" stroke-width="1.2"/>
+    
     <text x="14.5" y="56" text-anchor="middle" fill="#956d3f" font-size="2.5">Old door closed</text>
     <text x="0" y="77" font-size="2.5">Right door retained inward. Basin inside; actual basin size unmeasured.</text><g fill="none" stroke="#50675f" stroke-width=".35">
     <path d="M0 -3V-13M96 -3V-13M-3 0H-13M-3 48H-13M67 81V87M96 81V87"/>

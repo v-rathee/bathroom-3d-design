@@ -2,6 +2,8 @@
 
 **[Open the interactive comparison](https://v-rathee.github.io/bathroom-3d-design/)**
 
+**[Open the combined-room plumber mode](https://v-rathee.github.io/bathroom-3d-design/#plumber)**
+
 Public source: [v-rathee/bathroom-3d-design](https://github.com/v-rathee/bathroom-3d-design).
 The original room photographs, login data, local dependencies and test caches
 are not published.
@@ -32,6 +34,47 @@ were not surveyed; this is not an exact as-built reconstruction.
 Double-click [Bathroom-3D.html](Bathroom-3D.html) in a current Edge or Chrome
 browser with WebGL enabled. This one file is self-contained: it needs no server,
 internet, npm or additional assets. The Three.js MIT notice is embedded.
+
+## Plumber handover / revision P1
+
+The same viewer now includes a **Plumber** mode, not a separate replacement for
+the 3D comparison. Use the top-right Plumber button or the Plumber tab. This mode
+keeps the basin outside, shows the observed existing drain **survey zone** and
+indicative service-point markers, and adds a 7-foot tile-height guide. An outside
+washbasin detail view shows a proposed mirror and splashback. Return to comparison
+mode normally when finished.
+
+The owner's new site information is recorded explicitly:
+
+- The existing bath drain is at the **back-left corner of the original bathroom**,
+  beside the former partition. Its exact centre, invert, trap, size and discharge
+  route have not been measured.
+- The bath currently has two taps and **no geyser or geyser points**. The illustrated
+  heater and hot-water provision are NEW future work.
+- The WC product, floor/wall outlet and manufacturer rough-in are not selected.
+- The basin stays outside. The illustrated 18 x 14-inch basin, 35-inch rim height,
+  22 x 24-inch mirror and splashback are proposed sizes, not a surveyed existing product.
+
+Give the plumber [Plumber-Concept.pdf](Plumber-Concept.pdf), a four-sheet A3
+landscape concept:
+
+1. Combined-room setting-out plan, 1:20 only when printed A3 at 100%, and fixture
+   envelope schedule. Body dimensions are not soil-pipe rough-in coordinates.
+2. Functional water/drainage schematics, service-point coordination and survey holds.
+   No pipe route, size, invert or floor slope is approved.
+3. Rear-wall and outside-basin elevations; 84-inch tile line and future geyser zone.
+4. Tile quantities, survey records and pre-concealment hold points.
+
+[Plumber-Concept.html](Plumber-Concept.html) is the printable browser version.
+The [plumber plan SVG](Bathroom-plumber-plan.svg) is a quick reference, not a
+substitute for the complete hold-point notes. The PDF has no local file-path
+headers. All construction requires qualified on-site verification and applicable
+local requirements; do not connect WC soil into a bath floor drain.
+
+Inside tiling estimate: 32 sq ft floor, 168 sq ft gross walls to 7 feet, approximately
+151.89 sq ft net walls after a single **assumed 29 x 80-inch doorway**. With 10%
+extra: 35.2 sq ft floor and 167.08 sq ft walls, rounded up to actual boxes.
+External splashback, jamb returns and other extra faces are additional.
 
 ## Controls
 
@@ -170,6 +213,10 @@ doors and shows the 144-inch shell. Proposed finishes are not product specificat
   [Preview-mobile.png](Preview-mobile.png): current viewer previews.
 - [Preview-inside-basin.png](Preview-inside-basin.png): compact inside-basin alternative.
 - [Preview-door-conflict.png](Preview-door-conflict.png): 55-degree seated-WC door conflict.
+- [Plumber-Concept.pdf](Plumber-Concept.pdf), [Plumber-Concept.html](Plumber-Concept.html)
+  and [Bathroom-plumber-plan.svg](Bathroom-plumber-plan.svg): combined-room plumber concept.
+- [Preview-Plumber.png](Preview-Plumber.png) and
+  [Preview-Outside-Basin.png](Preview-Outside-Basin.png): plumber mode and outside-basin detail.
 - [QA-REPORT.md](QA-REPORT.md): model/browser verification and site limitations.
 - [Bathroom-Design-Package.zip](Bathroom-Design-Package.zip): portable package with sources.
 
@@ -180,6 +227,7 @@ With Node.js and Microsoft Edge installed, from this folder on Windows:
 ```powershell
 npm.cmd ci
 npm.cmd run build
+npm.cmd run handover:pdf
 npm.cmd test
 npm.cmd run test:browser
 ```
@@ -194,5 +242,6 @@ is not a substitute for re-authoring and checking the corresponding 3D geometry.
 GitHub Pages serves `main`, root `/`. Commit the updated source and generated
 files after rebuilding/testing. Keep `index.html`, `styles.css`, `dist/viewer.js`,
 `.nojekyll` and `THIRD-PARTY-NOTICES.txt` in the published files. Asset links are
-relative so the project works under its Pages subpath. The standalone HTML
-remains independently usable offline.
+relative so the project works under its Pages subpath. Include the plumber HTML,
+PDF and SVG in the published files. The standalone viewer remains independently
+usable offline; its handover links require the adjacent handover files.

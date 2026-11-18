@@ -6,13 +6,15 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node --test tests/layout.test.mjs",
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "handover:pdf": "node scripts/print-plumber.mjs"
   },
   "dependencies": {
     "three": "0.180.0"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
-    "esbuild": "0.25.10"
+    "esbuild": "0.25.10",
+    "pdf-lib": "1.17.1"
   }
 }
