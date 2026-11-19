@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node --test tests/layout.test.mjs",
+    "test": "node --test tests/layout.test.mjs tests/experience.test.mjs",
     "test:browser": "playwright test",
     "handover:pdf": "node scripts/print-plumber.mjs"
   },

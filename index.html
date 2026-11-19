@@ -8,7 +8,7 @@
   <meta name="description" content="Explore the combined 8 by 4 foot bathroom with a Western WC, outside washbasin, measured plan and interactive plumber service overlays.">
   <link rel="license" href="THIRD-PARTY-NOTICES.txt">
   <title>Combined Bathroom | Interactive 3D &amp; Plumber Plan</title>
-  <link rel="stylesheet" href="styles.css?v=390d22dbb4bf">
+  <link rel="stylesheet" href="styles.css?v=f79694788a50">
 </head>
 <body>
   <header class="masthead">
@@ -21,11 +21,13 @@
       <div class="intro"><span class="eyebrow">01 / THE COMBINED LAYOUT</span><h2>One room.<br>Basin outside.</h2><p>Compact seated WC on the left, open shower on the right, and the retained right door opening inward.</p></div>
       <nav class="tabs" aria-label="Design information">
         <button type="button" class="tab active" data-tab="layout" aria-pressed="true">Layout</button>
+        <button type="button" class="tab" data-tab="finished" aria-pressed="false">Finished room</button>
         <button type="button" class="tab" data-tab="checks" aria-pressed="false">Checks <span id="check-count"></span></button>
         <button type="button" class="tab" data-tab="plumber" aria-pressed="false">Plumber</button>
         <button type="button" class="tab" data-tab="notes" aria-pressed="false">Read first</button>
       </nav>
       <section id="panel-layout" class="tab-panel" aria-label="Layout">
+        <button type="button" id="enter-finished" class="experience-entry"><strong>Step inside the finished room</strong><span>Eye-level views, lifelike surfaces and warm lighting</span></button>
         <div class="section-heading"><h3>Explore your room</h3><span>Click an item</span></div>
         <div id="item-list" class="item-list"></div>
         <section class="inspector" aria-live="polite">
@@ -45,6 +47,26 @@
           <span>Finish palette</span><button type="button" class="swatch active" data-finish="sage" aria-label="Sage and limestone" aria-pressed="true"></button><button type="button" class="swatch sand" data-finish="sand" aria-label="Warm sand and ivory" aria-pressed="false"></button>
         </div>
         <div class="small-note">Cutaway walls are shortened and doors translucent for visibility, not proposed as glass. The ceiling stays 144 inches. Full height restores solid doors.</div>
+      </section>
+      <section id="panel-finished" class="tab-panel notes-panel" aria-label="Finished room experience" hidden>
+        <span class="eyebrow">EYE-LEVEL / PROPOSED FINISH</span>
+        <h3 style="margin-top:10px">A room, not a diagram.</h3>
+        <p>Explore the measured room from an assumed <strong>61-inch eye height</strong>, with full walls, a ceiling, warm ceiling light and textured tile surfaces. The portrait frame uses a wide-angle lens; perspective can exaggerate apparent space. Use the measured plan for clearances.</p>
+        <div class="room-view-list" role="group" aria-label="Finished room viewpoints">
+          <button type="button" data-room-view="entrance" class="active" aria-pressed="true">From the entrance</button>
+          <button type="button" data-room-view="toilet" aria-pressed="false">Toward the WC</button>
+          <button type="button" data-room-view="shower" aria-pressed="false">Toward the shower</button>
+          <button type="button" data-room-view="door" aria-pressed="false">Toward the entrance</button>
+        </div>
+        <label class="select-label" for="room-finish">Finish <select id="room-finish"><option value="sage">Sage + warm ivory</option><option value="sand">Sand + warm ivory</option></select></label>
+        <h4>Look and move</h4>
+        <p>Drag the picture to look around. Use <strong>W A S D</strong>, arrow keys or the on-screen arrows to move the camera. Wheel or + / - changes the lens. On a phone, drag to look and use the arrows and + / - buttons. Viewpoint buttons reset the view. Choose 3D view for the measured overview, or Plumber for service markers.</p>
+        <h4>What is kept true to the plan?</h4>
+        <p>Room 96 x 48 inches; ceiling 144 inches; wall tile line 84 inches; the same WC, shower and outside basin positions. No inside basin or extra floor space is added. The door stays closed in this experience; inspect its swing in 3D view.</p>
+        <h4 class="warning-title">Illustration, not an actual photograph</h4>
+        <p>Tile sizes, grout, surface sheen, wood-look finish, concealed services and the ceiling light are visual assumptions, not selected products, verified pipe routes or an electrical design. The geyser is illustrated future provision. Actual colours, lighting, products and workmanship will differ. Camera navigation is not a human-clearance or accessibility assessment.</p>
+        <p class="room-photo-links"><a href="Finished-Entrance.png" target="_blank" rel="noopener">Entrance render</a> &middot; <a href="Finished-WC.png" target="_blank" rel="noopener">WC render</a> &middot; <a href="Finished-Shower.png" target="_blank" rel="noopener">Shower render</a></p>
+        <p>Save room photo exports a clean picture without dimension labels or technical overlays, with a small visualization notice.</p>
       </section>
       <section id="panel-checks" class="tab-panel" aria-label="Design checks" hidden>
         <h3>Geometry checked.<br>Site work still needs approval.</h3>
@@ -91,6 +113,7 @@
       <div class="stage-toolbar">
         <div class="view-buttons" role="group" aria-label="Camera presets">
           <button type="button" class="active" data-view="perspective" aria-pressed="true">3D view</button>
+          <button type="button" data-view="finished" aria-pressed="false">Finished room</button>
           <button type="button" data-view="top" aria-pressed="false">Top 3D</button>
           <button type="button" data-view="inside" aria-pressed="false">Room view</button>
           <button type="button" data-view="plan" aria-pressed="false">2D plan</button>
@@ -98,6 +121,18 @@
         <div class="action-buttons"><button type="button" id="plumber-toggle" aria-pressed="false">Plumber mode: off</button><button type="button" id="door-toggle" aria-pressed="true">Door: open</button><button type="button" id="reset-view" title="Reset camera (H)">Reset view</button></div>
       </div>
       <div id="canvas-host" class="canvas-host" aria-label="3D model: drag to rotate, scroll to zoom"></div>
+      <div id="room-controls" class="room-controls" hidden>
+        <div id="room-nav-top" class="room-nav-top">
+          <label for="room-viewpoint">Viewpoint</label><select id="room-viewpoint"><option value="entrance">From the entrance</option><option value="toilet">Toward the WC</option><option value="shower">Toward the shower</option><option value="door">Toward the entrance</option></select>
+          <span id="room-position">From the entrance / eye level 61 in</span>
+        </div>
+        <div class="walk-controls">
+          <div class="walk-pad" role="group" aria-label="Move inside the room">
+            <button type="button" data-move="forward" aria-label="Move forward">&#8593;</button><button type="button" data-move="left" aria-label="Move left">&#8592;</button><button type="button" data-move="back" aria-label="Move back">&#8595;</button><button type="button" data-move="right" aria-label="Move right">&#8594;</button>
+          </div>
+          <div class="room-zoom"><button type="button" id="room-zoom-in" aria-label="Zoom room view in">+</button><button type="button" id="room-zoom-out" aria-label="Zoom room view out">-</button></div>
+        </div>
+      </div>
       <div id="plan-host" class="plan-host" hidden></div>
       <div id="proposed-heading" class="pane-heading"><span class="eyebrow">COMBINED ROOM / BASIN OUTSIDE</span><p id="mode-status" class="mode-status" role="status">DESIGN VIEW / washbasin stays outside</p></div>
       <div id="viewer-error" class="viewer-error" role="alert" hidden><h3>The 3D viewer could not start.</h3><p id="viewer-error-text"></p><p>The dimensioned 2D plan remains available. Try a current browser with WebGL enabled.</p></div>
@@ -111,6 +146,6 @@
   </main>
   <footer class="project-footer"><span>96 &times; 48 &times; 144 in <span class="footer-divider">/</span> Based on your measurements</span><span>Verify all dimensions on site before ordering fixtures.</span></footer>
   <noscript>This interactive viewer needs JavaScript. The adjacent Plumber-Concept.pdf provides the printable concept.</noscript>
-  <script src="dist/viewer.js?v=91ac65b518aa" defer></script>
+  <script src="dist/viewer.js?v=76c69a916f87" defer></script>
 </body>
 </html>

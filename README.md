@@ -2,6 +2,8 @@
 
 **[Open the 3D design](https://v-rathee.github.io/bathroom-3d-design/)**
 &nbsp; | &nbsp;
+**[Step inside the finished-room preview](https://v-rathee.github.io/bathroom-3d-design/#finished)**
+&nbsp; | &nbsp;
 **[Open Plumber mode](https://v-rathee.github.io/bathroom-3d-design/#plumber)**
 
 Public source: [v-rathee/bathroom-3d-design](https://github.com/v-rathee/bathroom-3d-design).
@@ -27,16 +29,55 @@ from the application, source, plans and portable package.
 Actual products, rough-ins, door/jamb offsets and final finished-face dimensions
 still need site verification.
 
+## Finished-room experience
+
+Select **Finished room**, or use the `#finished` link above, for an eye-level
+interior rather than the cutaway diagram. The 96 x 48-inch room, 144-inch ceiling,
+84-inch tile line, WC/shower positions and outside basin are unchanged.
+
+- Eye height: an assumed **61 inches**.
+- Viewpoints: entrance, WC, shower and toward the retained entrance.
+- Drag to look around; W/A/S/D, arrow keys or the on-screen arrows move the camera.
+- On phones, drag to look and use the movement and + / - buttons.
+- Wheel or + / - adjusts the lens; Reset view returns to the entrance viewpoint.
+- Choose Sage + warm ivory or Sand + warm ivory finishes.
+- Save room photo exports a clean portrait PNG, without the technical overlays.
+- Choose 3D view to return to the measured overview, or Plumber for service markers.
+
+The door stays closed in this experience; inspect its swing in 3D view. Camera
+navigation is bounded by the room and illustrative fixture envelopes, but is
+**not** a human-clearance, ergonomics or accessibility assessment.
+
+Surfaces use offline-generated tile/wood textures, glazed fixture materials,
+environment reflections, a proposed warm ceiling light and contact-shadow
+postprocessing. Walls are tiled to 7 feet, with paint above. The finished ceiling
+is at the actual modelled 12-foot height. Technical labels and planning patches
+are hidden. The renderer does not continuously redraw an idle finished view.
+
+**These are rendered visualizations, not actual photographs.** The wide-angle
+portrait view can exaggerate apparent space; use the measured plan for clearances.
+Tile sizes, joints, colour, sheen, wood-look finish, concealed services and ceiling
+light are visual assumptions, not selected products, verified pipe routes or an
+electrical design. The illustrated geyser remains new future provision.
+
+<img src="Finished-Entrance.png" alt="Illustrative finished bathroom viewed from the entrance" width="340">
+
+[Entrance render](Finished-Entrance.png) &middot;
+[WC render](Finished-WC.png) &middot;
+[Shower render](Finished-Shower.png) &middot;
+[Entrance-door render](Finished-Entry-Door.png)
+
 ## Controls and Plumber activation
 
 - Drag to orbit, wheel to zoom, right-drag to pan.
 - Touch: one finger rotates; two fingers zoom and pan.
 - Click a fixture or its sidebar card to inspect the proposal.
-- Camera presets: **3D view**, **Top 3D**, **Room view**, **2D plan**.
+- Camera presets: **3D view**, **Finished room**, **Top 3D**, **Room view**, **2D plan**.
 - Wall modes: shortened cutaway, full 144-inch height, or hidden shell.
 - Door button/slider: retained inward door, 0-90 degrees.
 - Checkboxes: measurements, labels, WC approach space and removed-partition trace.
-- Keyboard: H home, T top, D door endpoints, M measurements, Escape clear selection.
+- Overview keyboard: H home, T top, D door endpoints, M measurements, Escape clear
+  selection. In Finished room, W/A/S/D and arrow keys move the camera instead.
 
 **Clicking the Plumber tab now actually enables Plumber mode**, rather than just
 opening explanatory notes. The top button also toggles it. A green
@@ -119,6 +160,9 @@ Planning references are not a determination of applicable local requirements.
 - [Preview-3D.png](Preview-3D.png), [Preview-Desktop.png](Preview-Desktop.png),
   [Preview-mobile.png](Preview-mobile.png), [Preview-Plumber.png](Preview-Plumber.png) and
   [Preview-Outside-Basin.png](Preview-Outside-Basin.png): current previews.
+- [Finished-Entrance.png](Finished-Entrance.png), [Finished-WC.png](Finished-WC.png),
+  [Finished-Shower.png](Finished-Shower.png) and
+  [Finished-Entry-Door.png](Finished-Entry-Door.png): clean illustrative interior renders.
 - [QA-REPORT.md](QA-REPORT.md): verification scope and results.
 - [Bathroom-Design-Package.zip](Bathroom-Design-Package.zip): portable package with sources.
 

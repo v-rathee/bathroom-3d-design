@@ -2,7 +2,7 @@
 
 Date: 2026-11-18
 
-**24 layout tests and 18 browser tests passed.**
+**32 layout/navigation tests and 24 browser tests passed.**
 
 The viewer is combined-room only, with the washbasin fixed outside. The removed
 alternatives and their obsolete plans/previews are no longer part of the current
@@ -52,7 +52,7 @@ invert, size and discharge route remain unverified. The marked rectangle is a
 survey zone, not an actual pipe centre. The WC product/outlet is not selected;
 the heater and its points do not exist now.
 
-## 3. Layout tests: 24 passed
+## 3. Layout/navigation tests: 32 passed
 
 Run: `npm.cmd test`
 
@@ -71,8 +71,13 @@ Coverage:
 - Site safety/compliance never certified by geometry.
 - Single combined plan, outside basin, door state and survey-zone export.
 - Invalid inputs raise explicit errors.
+- Four finished-room viewpoints use the assumed 61-inch eye height and valid camera positions.
+- Camera bounds and fixture/door proximity rules are enforced.
+- Long camera steps are subdivided rather than tunnelling through fixtures.
+- Lens conversion preserves the horizontal field of view in the portrait frame.
+- Invalid camera movement, viewpoints and lens parameters fail explicitly.
 
-## 4. Browser tests: 18 passed
+## 4. Browser tests: 24 passed
 
 Run: `npm.cmd run test:browser`
 
@@ -99,11 +104,25 @@ Environment: isolated headless Microsoft Edge / Chromium on Windows.
 16. Simulated WebGL failure is explicit; the combined Plumber plan remains available.
 17. Phone touch orbit and two-finger pinch move the real camera.
 18. The four-sheet printable concept retains valid drawings and explicit hold points.
+19. Finished room preserves the measured geometry, actual 144-inch ceiling underside
+    and 84-inch tile height, while hiding technical labels, planning patches and overlays.
+    Returning to the overview restores prior wall/overlay settings.
+20. All four finished-room presets export nonempty, valid portrait PNGs.
+21. Drag-look, actual eye-level WASD movement, non-conflicting D-key behavior and
+    release of held movement on blur are verified.
+22. Phone look, movement and zoom controls work without horizontal overflow.
+23. The finished deep link works offline without HTTP assets; switching to Plumber
+    restores the measured service view.
+24. The finished renderer produces nonblank room pixels and stops GPU redraws while idle.
 
 The design-check counts are separate from the unit/browser test counts.
 The Node 26 tooling may emit a `module.register()` deprecation warning; normal
 application browser checks are clean. The WebGL-failure test intentionally
 exercises a failure path.
+
+The final clean run passed all 24 browser tests with a bounded overall timeout.
+An earlier browser session did not finish startup/teardown cleanly and was stopped
+before rerunning; its partial results are not used as the final verification result.
 
 ## 5. PDF and print checks
 
@@ -130,3 +149,20 @@ The room is an open wet room; no dry entry or WC is promised. Floor slopes are
 not engineered in the 3D model. Do not connect WC soil into a bath floor drain.
 The plumber pack is for discussion and quotation, not an instruction to start
 construction.
+
+## 7. Finished-room visual scope
+
+The finished view adds generated tile/wood surface maps, glazed ceramic, softened
+fixture edges, environment reflections, a proposed ceiling light and screen-space
+contact shadows. It does not import the owner's photographs or external texture
+assets. The measured floor/WC/basin/shelf geometry remains checked against the plan.
+
+Interior render exports are illustrative, not photographs or product-accurate
+manufacturer models. The lens is wide-angle and adjustable, so apparent room size
+must not be judged as a measured clearance. The assumed camera proximity margin is
+for virtual navigation only, not a human-accessibility certification.
+
+The seven-foot tile finish is represented on all inside walls, with paint above,
+and the ceiling is not lowered to make the view look larger. The heater remains a
+future proposal. Concealed-service appearance and the ceiling light are visual
+assumptions, not approved routing or electrical additions to the plumber drawings.
