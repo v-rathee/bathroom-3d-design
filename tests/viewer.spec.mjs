@@ -147,8 +147,10 @@ test('raycasting, wheel zoom, orbit and pan move the actual combined-room camera
   const y = bounds.y + pane.top + pane.height * 0.6;
   await page.mouse.move(x, y);
   const zoom = (await snapshot(page)).camera.zoom;
+  const frames = (await snapshot(page)).experience.framesRendered;
   await page.mouse.wheel(0, -250);
   await expect.poll(async () => (await snapshot(page)).camera.zoom).toBeGreaterThan(zoom);
+  await expect.poll(async () => (await snapshot(page)).experience.framesRendered).toBeGreaterThan(frames);
   await page.locator('#reset-view').click();
   const before = (await snapshot(page)).camera.position;
   await page.mouse.move(x, y);
@@ -331,6 +333,11 @@ test('WebGL failure is explicit while the combined plumber plan remains availabl
   await expect(page.locator('#viewer-error')).toBeVisible();
   expect((await snapshot(page)).ready).toBe(false);
   await expect(page.locator('#save-image')).toBeDisabled();
+  await page.locator('[data-tab="finished"]').click();
+  expect((await snapshot(page)).view).not.toBe('finished');
+  await expect(page.locator('#viewer-error')).toBeVisible();
+  await expect(page.locator('#panel-finished')).toBeVisible();
+  await expect(page.locator('.room-photo-links a')).toHaveCount(3);
   await page.locator('[data-tab="plumber"]').click();
   await page.locator('[data-view="plan"]').click();
   await expect(page.locator('#plan-host svg')).toBeVisible();
@@ -371,4 +378,169 @@ test('printable plumber concept remains four valid combined-room sheets', async 
   const valid = await page.locator('svg').evaluateAll(svgs => svgs.every(svg =>
     !new DOMParser().parseFromString(new XMLSerializer().serializeToString(svg), 'image/svg+xml').querySelector('parsererror')));
   expect(valid).toBe(true);
+});
+
+test('finished room preserves measured geometry and hides every technical overlay', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  await page.locator('#clearances').check();
+  await page.locator('#old-wall').check();
+  await page.locator('[data-tab="finished"]').click();
+  const state = await snapshot(page);
+  expect(state.view).toBe('finished');
+  expect(state.basinPlacement).toBe('outside');
+  expect(state.geometry.matches).toBe(true);
+  expect(state.visible).toMatchObject({
+    ceiling: true, fullWalls: true, labels: false, dimensions: false,
+    clearances: false, removed: false, plumber: false, showerPlanningOverlay: false,
+  });
+  expect(state.experience.eyeHeight).toBe(61);
+  expect(state.experience.position.y).toBe(61);
+  expect(state.experience.ceilingUnderside).toBe(144);
+  expect(state.experience.tileMaxHeight).toBe(84);
+  expect(state.experience.navigationValid).toBe(true);
+  expect(state.doorAngle).toBe(0);
+  await expect(page.locator('#room-controls')).toBeVisible();
+  await expect(page.locator('#wall-mode')).toBeDisabled();
+  await expect(page.locator('#door-toggle')).toBeDisabled();
+  await page.locator('[data-view="perspective"]').click();
+  expect((await snapshot(page)).visible.ceiling).toBe(false);
+  expect((await snapshot(page)).walls).toBe('cutaway');
+  expect((await snapshot(page)).visible.clearances).toBe(true);
+  await expect(page.locator('#wall-mode')).toBeEnabled();
+  expect(errors).toEqual([]);
+});
+
+test('finished-room presets export four clean portrait images with the correct PNG shape', async ({ page }) => {
+  await page.locator('[data-view="finished"]').click();
+  for (const [view, name] of [
+    ['entrance', 'Finished-Entrance.png'], ['toilet', 'Finished-WC.png'],
+    ['shower', 'Finished-Shower.png'], ['door', 'Finished-Entry-Door.png'],
+  ]) {
+    await page.locator('#room-viewpoint').selectOption(view);
+    const state = await snapshot(page);
+    expect(state.roomViewpoint).toBe(view);
+    expect(state.experience.navigationValid).toBe(true);
+    expect(state.experience.position.y).toBe(61);
+    const ready = page.waitForEvent('download');
+    await page.locator('#save-image').click();
+    const image = await ready;
+    expect(image.suggestedFilename()).toBe(`Bathroom-finished-${view}.png`);
+    await image.saveAs(path.join(root, name));
+    const bytes = await readFile(path.join(root, name));
+    expect([...bytes.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+    expect(bytes.readUInt32BE(20)).toBeGreaterThan(bytes.readUInt32BE(16));
+    expect(bytes.readUInt32BE(16)).toBeGreaterThan(300);
+    expect(bytes.length).toBeGreaterThan(20000);
+  }
+});
+
+test('finished-room drag-look and WASD move the real eye-level camera, not the door', async ({ page }) => {
+  await page.locator('[data-view="finished"]').click();
+  const before = await snapshot(page);
+  const canvas = await page.locator('#canvas-host canvas').boundingBox();
+  const pane = before.viewports.proposed;
+  const x = canvas.x + pane.left + pane.width * 0.6;
+  const y = canvas.y + pane.top + pane.height * 0.6;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 40, y + 15, { steps: 8 });
+  await page.mouse.up();
+  expect((await snapshot(page)).experience.yaw).not.toBe(before.experience.yaw);
+  const position = (await snapshot(page)).experience.position;
+  await page.keyboard.down('w');
+  await expect.poll(async () => (await snapshot(page)).experience.position).not.toEqual(position);
+  await page.keyboard.up('w');
+  await page.keyboard.down('d');
+  await expect.poll(async () => (await snapshot(page)).experience.movement).toContain('right');
+  await page.keyboard.up('d');
+  expect((await snapshot(page)).doorAngle).toBe(0);
+  expect((await snapshot(page)).experience.navigationValid).toBe(true);
+  expect((await snapshot(page)).experience.position.y).toBe(61);
+  await page.keyboard.down('w');
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  expect((await snapshot(page)).experience.movement).toEqual([]);
+  await page.keyboard.up('w');
+});
+
+test('finished room works on phones with look, movement and zoom controls without overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('[data-tab="finished"]').click();
+  await expect(page.locator('#room-controls')).toBeVisible();
+  const lens = (await snapshot(page)).experience.lensHorizontal;
+  await page.locator('#room-zoom-in').click();
+  expect((await snapshot(page)).experience.lensHorizontal).toBeLessThan(lens);
+  const forward = await page.locator('[data-move="forward"]').boundingBox();
+  const before = (await snapshot(page)).experience.position;
+  await page.mouse.move(forward.x + forward.width / 2, forward.y + forward.height / 2);
+  await page.mouse.down();
+  await expect.poll(async () => (await snapshot(page)).experience.position).not.toEqual(before);
+  await page.mouse.up();
+  expect((await snapshot(page)).experience.movement).toEqual([]);
+  const client = await page.context().newCDPSession(page);
+  await client.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 2 });
+  const bounds = await page.locator('#canvas-host canvas').boundingBox();
+  const pane = (await snapshot(page)).viewports.proposed;
+  const x = bounds.x + pane.left + pane.width / 2;
+  const y = bounds.y + pane.top + pane.height * 0.6;
+  const yaw = (await snapshot(page)).experience.yaw;
+  await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
+  await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + 35, y: y + 12, id: 1 }] });
+  await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  expect((await snapshot(page)).experience.yaw).not.toBe(yaw);
+  await client.detach();
+  for (const width of [320, 390, 768]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.locator('#reset-view').click();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect((await snapshot(page)).experience.navigationValid).toBe(true);
+  }
+});
+
+test('finished deep link renders offline and switching to Plumber restores the measured overview', async ({ page }) => {
+  const requests = [], errors = [];
+  page.on('request', request => { if (/^https?:/.test(request.url())) requests.push(request.url()); });
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  await page.route(/^https?:/, route => route.abort());
+  await page.goto(`${url}#finished`);
+  await page.reload();
+  await page.waitForFunction(() => window.bathroomViewer?.snapshot().view === 'finished');
+  expect((await snapshot(page)).experience.proceduralTextures).toBe(true);
+  await page.locator('#room-finish').selectOption('sand');
+  expect((await snapshot(page)).finish).toBe('sand');
+  await page.locator('[data-tab="plumber"]').click();
+  expect((await snapshot(page)).view).toBe('perspective');
+  expect((await snapshot(page)).plumber).toBe(true);
+  expect((await snapshot(page)).visible.ceiling).toBe(false);
+  expect((await snapshot(page)).visible.plumber).toBe(true);
+  expect(requests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test('finished renderer produces a nonblank room image rather than just a clear background', async ({ page }) => {
+  await page.locator('[data-view="finished"]').click();
+  await page.locator('#reset-view').click();
+  const range = await page.evaluate(() => {
+    const canvas = document.querySelector('#canvas-host canvas');
+    const gl = canvas.getContext('webgl2');
+    const pane = window.bathroomViewer.snapshot().viewports.proposed;
+    const stage = document.querySelector('.stage').getBoundingClientRect();
+    const ratio = canvas.width / stage.width;
+    const values = [];
+    for (const px of [0.2, 0.5, 0.8]) for (const py of [0.2, 0.5, 0.8]) {
+      const sample = new Uint8Array(4);
+      gl.readPixels(Math.floor((pane.left + pane.width * px) * ratio),
+        Math.floor(canvas.height - (pane.top + pane.height * py) * ratio),
+        1, 1, gl.RGBA, gl.UNSIGNED_BYTE, sample);
+      values.push(sample[0], sample[1], sample[2]);
+    }
+    return Math.max(...values) - Math.min(...values);
+  });
+  expect(range).toBeGreaterThan(20);
+  await page.waitForTimeout(100);
+  const frames = (await snapshot(page)).experience.framesRendered;
+  await page.waitForTimeout(200);
+  expect((await snapshot(page)).experience.framesRendered).toBe(frames);
 });
