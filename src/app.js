@@ -1,8 +1,19 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import {
   ROOM, ITEMS, DOORS, evaluateLayout, doorTip, planSvg, PLUMBER_SITE, tileQuantities,
 } from './layout.js';
+import {
+  EYE_HEIGHT, DEFAULT_LENS, ROOM_VIEWS, roomPose, moveCamera, canPlaceCamera, lensToVertical,
+  tileMaterial, woodMaterial,
+} from './experience.js';
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
@@ -14,6 +25,7 @@ const state = {
   finish: 'sage', selected: 'toilet', ready: false, error: null,
   layout: 'combined', basinPlacement: 'outside', doorAngle: 90,
   plumber: false, tileLine: true,
+  roomViewpoint: 'entrance', roomLens: DEFAULT_LENS,
 };
 const fixtureModels = new Map();
 const pickable = [];
@@ -28,6 +40,13 @@ let scene, renderer, controls, activeCamera, perspectiveCamera, topCamera;
 let fullWalls, cutawayWalls, doorPivot, selectionBox, floorMesh, accentMaterial, wallMaterial;
 let heightDimension, geometryAudit, resizeObserver;
 let outsideBasinDesign;
+let paintMaterial, timberMaterial, ceilingGroup, roomLight, roomLamp, ambientLight, keyLight, fillLight, showerZone;
+let wallBeforeFinished = 'cutaway';
+let roomYaw = 0, roomPitch = 0;
+let roomComposer, roomQuad, heaterDiagramPipes, heaterFinishedPipes;
+const movement = new Set();
+const frameClock = new THREE.Clock();
+let sceneDirty = true, framesRendered = 0;
 
 const itemOrder = ['toilet', 'shower', 'bucket', 'heater', 'shelf', 'basin', 'drain'];
 const shortSizes = {
@@ -70,7 +89,7 @@ function selectItem(id) {
   });
   if (selectionBox) {
     const object = fixtureModels.get(id);
-    selectionBox.visible = Boolean(object) && state.view !== 'plan' && (state.view !== 'basin' || id === 'basin');
+    selectionBox.visible = Boolean(object) && !['plan', 'finished'].includes(state.view) && (state.view !== 'basin' || id === 'basin');
     if (object) selectionBox.setFromObject(object);
   }
 }
@@ -93,16 +112,20 @@ function getViewports() {
   const { width, height, top: stageTop } = stage.getBoundingClientRect();
   const toolbarBottom = $('.stage-toolbar').getBoundingClientRect().bottom - stageTop;
   $('.stage-caption').style.top = `${toolbarBottom + 12}px`;
-  const top = Math.max(155, toolbarBottom + 94), bottom = 85, margin = 12;
+  const top = state.view === 'finished' ? toolbarBottom + 38 : Math.max(155, toolbarBottom + 94);
+  const bottom = state.view === 'finished' ? 100 : 85, margin = 12;
+  const frameWidth = state.view === 'finished' ? Math.min(width - margin * 2, (height - top - bottom) * 0.8) : width - margin * 2;
   return {
     width, height,
-    proposed: { left: margin, top, width: width - margin * 2, height: height - top - bottom },
+    proposed: { left: (width - frameWidth) / 2, top, width: frameWidth, height: height - top - bottom },
   };
 }
 
 function positionPanes() {
   const panes = getViewports();
   const rectangle = panes.proposed;
+  Object.assign($('#room-nav-top').style, { left: `${rectangle.left + 8}px`, top: `${rectangle.top + 8}px`, maxWidth: `${rectangle.width - 16}px` });
+  $('#proposed-heading').hidden = state.view === 'finished';
   Object.assign($('#proposed-heading').style, { left: `${rectangle.left}px`, top: `${rectangle.top - 56}px`, width: `${rectangle.width}px` });
   $('#plan-host').hidden = state.view !== 'plan';
   Object.assign($('#plan-host').style, { inset: 'auto', left: `${rectangle.left}px`, top: `${rectangle.top}px`, width: `${rectangle.width}px`, height: `${rectangle.height}px` });
@@ -110,6 +133,8 @@ function positionPanes() {
 }
 
 function renderScenes() {
+  sceneDirty = false;
+  framesRendered++;
   const panes = getViewports();
   renderer.setScissorTest(false);
   renderer.setViewport(0, 0, panes.width, panes.height);
@@ -118,6 +143,18 @@ function renderScenes() {
   renderer.setScissorTest(true);
   const pane = panes.proposed;
   const bottom = panes.height - pane.top - pane.height;
+  if (state.view === 'finished') {
+    renderer.setScissorTest(false);
+    roomComposer.render();
+    renderer.setRenderTarget(null);
+    roomQuad.material.uniforms.tDiffuse.value = roomComposer.readBuffer.texture;
+    renderer.setViewport(pane.left, bottom, pane.width, pane.height);
+    renderer.setScissor(pane.left, bottom, pane.width, pane.height);
+    renderer.setScissorTest(true);
+    roomQuad.render(renderer);
+    renderer.setScissorTest(false);
+    return;
+  }
   renderer.setViewport(pane.left, bottom, pane.width, pane.height);
   renderer.setScissor(pane.left, bottom, pane.width, pane.height);
   renderer.render(scene, activeCamera);
@@ -139,6 +176,24 @@ function mesh(geometry, surface, parent, x, y, d) {
 
 function box(parent, width, height, depth, x, y, d, surface) {
   return mesh(new THREE.BoxGeometry(width, height, depth), surface, parent, x, y, d);
+}
+
+function roundedBox(parent, width, height, depth, x, y, d, surface, radius = 0.3) {
+  return mesh(new RoundedBoxGeometry(width, height, depth, 3, radius), surface, parent, x, y, d);
+}
+
+function tiledPanel(parent, width, height, x, y, d, surface, rotation = 0) {
+  const geometry = new THREE.PlaneGeometry(width, height);
+  const uv = geometry.attributes.uv;
+  for (let index = 0; index < uv.count; index++) {
+    uv.setXY(index, uv.getX(index) * width / (surface.userData.tileWidth * 2),
+      uv.getY(index) * height / (surface.userData.tileHeight * 2));
+  }
+  const panel = mesh(geometry, surface, parent, x, y, d);
+  panel.userData.tileTop = y + height / 2;
+  panel.rotation.y = rotation;
+  panel.castShadow = false;
+  return panel;
 }
 
 function cylinder(parent, radiusTop, radiusBottom, height, x, y, d, surface, open = false) {
@@ -214,15 +269,21 @@ function buildWalls() {
     const backHeight = full ? ROOM.height : 112;
     const sideHeight = full ? ROOM.height : 18;
     const frontHeight = full ? ROOM.height : 7;
-    box(group, ROOM.width + 8, backHeight, 4, 48, backHeight / 2, 50, wallMaterial);
-    box(group, 4, sideHeight, 48, -2, sideHeight / 2, 24, wallMaterial);
-    box(group, 4, sideHeight, 48, 98, sideHeight / 2, 24, wallMaterial);
-    box(group, 67, frontHeight, 4, 33.5, frontHeight / 2, -2, wallMaterial);
+    box(group, ROOM.width + 8, backHeight, 4, 48, backHeight / 2, 50, paintMaterial);
+    box(group, 4, sideHeight, 48, -2, sideHeight / 2, 24, paintMaterial);
+    box(group, 4, sideHeight, 48, 98, sideHeight / 2, 24, paintMaterial);
+    box(group, 67, frontHeight, 4, 33.5, frontHeight / 2, -2, paintMaterial);
     if (full) {
-      box(group, 29, ROOM.height - ROOM.doorHeight, 4, 81.5, (ROOM.height + ROOM.doorHeight) / 2, -2, wallMaterial);
+      box(group, 29, ROOM.height - ROOM.doorHeight, 4, 81.5, (ROOM.height + ROOM.doorHeight) / 2, -2, paintMaterial);
+      tiledPanel(group, 29, 4, 81.5, 82, 0, wallMaterial, Math.PI);
     }
-    for (let x = 0; x <= 96; x += 12) line(group, [[x, 0, 47.96], [x, backHeight, 47.96]], '#c7c9b9');
-    for (let y = 12; y < backHeight; y += 12) line(group, [[0, y, 47.95], [96, y, 47.95]], '#c7c9b9');
+    const tileBack = Math.min(backHeight, PLUMBER_SITE.tileHeight);
+    const tileSide = Math.min(sideHeight, PLUMBER_SITE.tileHeight);
+    const tileFront = Math.min(frontHeight, PLUMBER_SITE.tileHeight);
+    tiledPanel(group, 96, tileBack, 48, tileBack / 2, 48, wallMaterial);
+    tiledPanel(group, 48, tileSide, 0, tileSide / 2, 24, wallMaterial, Math.PI / 2);
+    tiledPanel(group, 48, tileSide, 96, tileSide / 2, 24, wallMaterial, -Math.PI / 2);
+    tiledPanel(group, 67, tileFront, 33.5, tileFront / 2, 0, wallMaterial, Math.PI);
     const infill = material('#cdbb98');
     box(group, 29, Math.min(frontHeight, 3), 4.1, 14.5, Math.min(frontHeight, 3) / 2, -2, infill);
   }
@@ -231,13 +292,10 @@ function buildWalls() {
   scene.add(fullWalls, cutawayWalls);
   fullWalls.visible = false;
   const accent = new THREE.Group();
-  box(accent, 36, 96, 0.15, 78, 48, 47.85, accentMaterial);
-  for (let x = 60; x <= 96; x += 6) line(accent, [[x, 0, 47.74], [x, 96, 47.74]], '#638774');
-  for (let y = 12; y < 96; y += 12) line(accent, [[60, y, 47.73], [96, y, 47.73]], '#638774');
+  tiledPanel(accent, 36, PLUMBER_SITE.tileHeight, 78, PLUMBER_SITE.tileHeight / 2, 48, accentMaterial);
   accent.name = 'shower-accent';
   scene.add(accent);
-  const timber = material('#ab8154', { roughness: 0.8 });
-  buildFrame(scene, 67, timber);
+  buildFrame(scene, 67, timberMaterial);
 }
 
 function buildFrame(parent, start, timber) {
@@ -249,32 +307,16 @@ function buildFrame(parent, start, timber) {
 function buildFloor(parent = scene, wet = true) {
   const foundation = material('#c9c4b5');
   box(parent, 104, 2, 56, 48, -1.2, 24, foundation);
-  const tileCanvas = document.createElement('canvas');
-  tileCanvas.width = 256;
-  tileCanvas.height = 256;
-  const tileContext = tileCanvas.getContext('2d');
-  if (!tileContext) throw new Error('Floor material texture could not be created.');
-  tileContext.fillStyle = '#d4cbb7';
-  tileContext.fillRect(0, 0, 256, 256);
-  let seed = 41;
-  const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
-  for (let index = 0; index < 3500; index++) {
-    tileContext.fillStyle = index % 2 ? '#f0e9d680' : '#9a927a45';
-    const x = random() * 256, y = random() * 256;
-    tileContext.fillRect(x, y, random() * 2 + 0.3, random() * 2 + 0.3);
-  }
-  const floorTexture = new THREE.CanvasTexture(tileCanvas);
-  floorTexture.colorSpace = THREE.SRGBColorSpace;
-  floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
-  floorTexture.repeat.set(8, 4);
-  const floor = box(parent, 96, 0.3, 48, 48, -0.15, 24, material('#ffffff', { map: floorTexture, roughness: 0.86 }));
-  for (let x = 0; x <= 96; x += 12) line(parent, [[x, 0.03, 0], [x, 0.03, 48]], '#b6b09e');
-  for (let d = 0; d <= 48; d += 12) line(parent, [[0, 0.04, d], [96, 0.04, d]], '#b6b09e');
+  const floorSurface = tileMaterial({ color: '#d4cbb7', tileWidth: 24, tileHeight: 24, floor: true });
+  floorSurface.map.repeat.set(2, 1);
+  floorSurface.bumpMap.repeat.set(2, 1);
+  const floor = box(parent, 96, 0.3, 48, 48, -0.15, 24, floorSurface);
   box(parent, 96, 0.25, 32, 48, -0.5, -16, material('#e0e2d7', { roughness: 0.98 }));
   const zone = new THREE.Mesh(new THREE.PlaneGeometry(36, 36), new THREE.MeshBasicMaterial({ color: '#adc9b5', transparent: true, opacity: 0.18, depthWrite: false }));
   zone.rotation.x = -Math.PI / 2;
   zone.position.set(78, 0.08, -30);
   if (wet) parent.add(zone);
+  showerZone = zone;
   return floor;
 }
 
@@ -301,18 +343,23 @@ function buildToilet(ceramic, brass) {
   inner.scale.z = 1.44;
   const water = cylinder(group, 3.2, 3.2, 0.04, 17.5, 10.4, 32, material('#b8d5d4', { roughness: 0.12 }));
   water.scale.z = 1.4;
-  box(group, 15, 14.25, 5.5, 17.5, 25.125, 44.25, ceramic);
-  box(group, 15, 0.25, 5.5, 17.5, 32.375, 44.25, ceramic);
+  roundedBox(group, 15, 14.25, 5.5, 17.5, 25.125, 44.25, ceramic);
+  roundedBox(group, 15, 0.25, 5.5, 17.5, 32.375, 44.25, ceramic, 0.1);
   cylinder(group, 0.8, 0.8, 0.08, 17.5, 32.46, 44.25, brass);
   box(group, 4, 12, 4, 17.5, 12, 44.2, ceramic);
   scene.add(group);
   register('toilet', group);
-  tube(scene, [[27.7, 23, 47], [30.5, 19, 45], [31, 8, 42], [29, 6, 40], [28, 16, 43]], 0.22, brass);
+  const flexible = material('#a8b2ae', { metalness: 0.85, roughness: 0.4 });
+  tube(scene, [[27.7, 23, 47], [30.5, 19, 45], [31, 8, 42], [29, 6, 40], [28, 23, 43]], 0.22, flexible);
+  tube(scene, [[28, 23, 43], [28, 26, 43], [28, 26, 42.5], [28, 25.6, 41.8]], 0.35, brass);
   const holder = box(scene, 1.5, 4, 1.2, 28, 24, 46, brass);
   holder.userData.fixture = 'toilet';
   pickable.push(holder);
   const roll = cylinder(scene, 2.2, 2.2, 4.2, 2.4, 26, 28, material('#f4f0e2'));
   roll.rotation.z = Math.PI / 2;
+  const core = cylinder(scene, 0.6, 0.6, 0.06, 4.55, 26, 28, material('#a49a80'));
+  core.rotation.z = Math.PI / 2;
+  box(scene, 3.5, 3.8, 0.04, 2.4, 22.2, 25.8, material('#f4f0e2'));
   tag(labels, 'COMPACT WC', 17.5, 39, 39, { width: 23 });
 }
 
@@ -358,18 +405,29 @@ function buildHeater(ceramic, brass) {
   box(group, 4.5, 3, 0.2, 47.5, 87.5, 33.48, material('#53675c'));
   scene.add(group);
   register('heater', group);
-  tube(scene, [[44, 83, 40.5], [44, 77, 45.9], [59, 77, 46.2], [79, 77, 46.2]], 0.25, brass);
-  tube(scene, [[51, 83, 40.5], [52, 74, 46.2], [85, 74, 46.2], [85, 20, 46.2]], 0.22, brass);
+  heaterDiagramPipes = new THREE.Group();
+  tube(heaterDiagramPipes, [[44, 83, 40.5], [44, 77, 45.9], [59, 77, 46.2], [79, 77, 46.2]], 0.25, brass);
+  tube(heaterDiagramPipes, [[51, 83, 40.5], [52, 74, 46.2], [85, 74, 46.2], [85, 20, 46.2]], 0.22, brass);
+  heaterFinishedPipes = new THREE.Group();
+  const flexible = material('#aeb7b2', { metalness: 0.75, roughness: 0.35 });
+  for (const x of [44, 51]) {
+    tube(heaterFinishedPipes, [[x, 83, 40.5], [x, 77.5, 42], [x, 78, 47.8]], 0.25, flexible);
+    const cover = cylinder(heaterFinishedPipes, 0.8, 0.8, 0.12, x, 78, 47.65, flexible);
+    cover.rotation.x = Math.PI / 2;
+  }
+  heaterFinishedPipes.visible = false;
+  scene.add(heaterDiagramPipes, heaterFinishedPipes);
   tag(labels, 'GN1 / NEW FUTURE GEYSER', 47.5, 113, 42, { width: 35 });
 }
 
 function buildShelf() {
   const group = new THREE.Group();
-  const wood = material('#b4a07b', { roughness: 0.86 });
+  const wood = timberMaterial;
   box(group, 20, 1, 7, 48, 48.5, 44.5, wood);
   box(group, 20, 1, 7, 48, 59.5, 44.5, wood);
   box(group, 1, 12, 7, 38.5, 54, 44.5, wood);
   box(group, 1, 12, 7, 57.5, 54, 44.5, wood);
+  box(group, 18, 10, 0.3, 48, 54, 47.8, wood);
   for (const [x, color, height] of [[43, '#d2d3bb', 5.5], [47, '#5e7d67', 7], [52, '#d5b686', 4]]) {
     cylinder(group, 1.1, 1.1, height, x, 49 + height / 2, 44, material(color));
     cylinder(group, 0.5, 0.5, 0.5, x, 49.25 + height, 44, material('#ac946c'));
@@ -382,7 +440,7 @@ function buildBasin(ceramic, brass) {
   const item = ITEMS.basin;
   const x = item.x + item.width / 2, d = item.d + item.depth / 2;
   const group = new THREE.Group();
-  box(group, item.width, 5, item.depth, x, 31.5, d, ceramic);
+  roundedBox(group, item.width, 5, item.depth, x, 31.5, d, ceramic, 0.6);
   ovalRing(group, item.width - 1.5, item.depth - 2, item.width - 5.5, item.depth - 6, 1, x, 34, d, ceramic);
   const bowl = cylinder(group, 5.8, 4, 2, x, 33.5, d, material('#dae5de'), true);
   bowl.scale.z = (item.depth - 6) / 11.6;
@@ -440,14 +498,20 @@ function buildPlumberConcept(brass) {
 }
 
 function makeDoor(parent, definition, brass) {
-  const wood = material('#a68156', { roughness: 0.8, transparent: true, opacity: 0.32, depthWrite: false });
+  const wood = timberMaterial.clone();
+  wood.transparent = true;
+  wood.opacity = 0.32;
+  wood.depthWrite = false;
   const pivot = new THREE.Group();
   const sign = definition.hinge === 'right' ? -1 : 1;
   pivot.position.set(definition.x + (sign < 0 ? definition.width : 0), 0, 0);
   const leaf = box(pivot, definition.width, definition.top - definition.bottom, 1.2, sign * definition.width / 2, (definition.top + definition.bottom) / 2, 0, wood);
   leaf.castShadow = false;
   pivot.userData.leaf = leaf;
-  box(pivot, 3.2, 0.5, 1.7, sign * 25, 37, -1.1, brass);
+  for (const face of [-1, 1]) {
+    roundedBox(pivot, 1.3, 5, 0.25, sign * 25, 37, face * 0.75, brass, 0.1);
+    box(pivot, 3.2, 0.5, 1.7, sign * 25, 37, face * 1.1, brass);
+  }
   const tip = new THREE.Object3D();
   tip.name = 'door-tip';
   tip.position.set(sign * definition.width, 40, 0);
@@ -508,8 +572,10 @@ function buildMeasurements() {
 
 function addEnvironment(parent) {
   const hemi = new THREE.HemisphereLight('#fff8e6', '#a8b8a4', 1.6);
+  ambientLight = hemi;
   parent.add(hemi);
   const sun = new THREE.DirectionalLight('#fff4d8', 2.4);
+  keyLight = sun;
   sun.position.set(-45, 180, 90);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -519,11 +585,35 @@ function addEnvironment(parent) {
   sun.target.position.set(48, 0, -24);
   parent.add(sun, sun.target);
   const fill = new THREE.DirectionalLight('#e4f0ec', 0.7);
+  fillLight = fill;
   fill.position.set(150, 100, -130);
   parent.add(fill);
   const ground = mesh(new THREE.PlaneGeometry(1800, 1800), new THREE.ShadowMaterial({ color: '#394632', opacity: 0.15 }), parent, 48, -2.5, 20);
   ground.rotation.x = -Math.PI / 2;
   ground.castShadow = false;
+}
+
+function buildFinishedRoom() {
+  ceilingGroup = new THREE.Group();
+  const ceiling = box(ceilingGroup, 104, 2, 56, 48, ROOM.height + 1, 24, paintMaterial);
+  ceiling.name = 'finished-ceiling';
+  roundedBox(ceilingGroup, 13, 0.7, 13, 48, ROOM.height - 0.45, 24, material('#eee9dc'), 0.2);
+  roomLamp = roundedBox(ceilingGroup, 11.5, 0.1, 11.5, 48, ROOM.height - 0.85, 24,
+    new THREE.MeshStandardMaterial({ color: '#fff8e9', emissive: '#fff0d3', emissiveIntensity: 2, roughness: 0.6 }), 0.04);
+  roomLamp.castShadow = false;
+  roomLight = new THREE.PointLight('#fff1dc', 11000, 0, 2);
+  roomLight.position.set(48, ROOM.height - 3, -24);
+  roomLight.castShadow = true;
+  roomLight.shadow.mapSize.set(1024, 1024);
+  roomLight.shadow.camera.near = 0.5;
+  roomLight.shadow.camera.far = 220;
+  roomLight.shadow.bias = -0.0002;
+  roomLight.shadow.normalBias = 0.08;
+  roomLight.shadow.radius = 2;
+  roomLight.shadow.autoUpdate = false;
+  ceilingGroup.add(roomLight);
+  ceilingGroup.visible = false;
+  scene.add(ceilingGroup);
 }
 
 function auditGeometry() {
@@ -565,11 +655,18 @@ function initialize3D() {
   renderer.domElement.setAttribute('aria-label', 'Interactive 3D bathroom model');
   renderer.domElement.setAttribute('role', 'img');
   host.append(renderer.domElement);
+  const environment = new RoomEnvironment();
+  const generator = new THREE.PMREMGenerator(renderer);
+  scene.environment = generator.fromScene(environment, 0.04).texture;
+  scene.environmentIntensity = 0.6;
+  environment.dispose();
+  generator.dispose();
   perspectiveCamera = new THREE.PerspectiveCamera(42, 1, 0.5, 1800);
   topCamera = new THREE.OrthographicCamera(-80, 80, 80, -80, 0.5, 1800);
   topCamera.up.set(0, 0, -1);
   activeCamera = perspectiveCamera;
   controls = new OrbitControls(activeCamera, renderer.domElement);
+  controls.addEventListener('change', () => { sceneDirty = true; });
   controls.enableDamping = true;
   controls.dampingFactor = 0.12;
   controls.minDistance = 16;
@@ -578,9 +675,16 @@ function initialize3D() {
   controls.minZoom = 0.45;
   controls.maxZoom = 5;
   addEnvironment(scene);
-  wallMaterial = material('#e4e3d5', { roughness: 0.8 });
-  accentMaterial = material('#7b9b85', { roughness: 0.68 });
-  const ceramic = material('#f5f4e9', { roughness: 0.24, metalness: 0.02 });
+  const anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  paintMaterial = material('#eeeae0', { roughness: 0.9 });
+  wallMaterial = tileMaterial({ color: '#e4e3d5', anisotropy });
+  accentMaterial = tileMaterial({ color: '#7b9b85', tileWidth: 6, tileHeight: 12, anisotropy });
+  accentMaterial.polygonOffsetFactor = -2;
+  accentMaterial.polygonOffsetUnits = -2;
+  timberMaterial = woodMaterial();
+  const ceramic = new THREE.MeshPhysicalMaterial({
+    color: '#f5f4ed', roughness: 0.2, metalness: 0, clearcoat: 0.65, clearcoatRoughness: 0.16,
+  });
   const brass = material('#b89b64', { metalness: 0.7, roughness: 0.32 });
   floorMesh = buildFloor();
   buildWalls();
@@ -594,6 +698,7 @@ function initialize3D() {
   buildDoor(brass);
   buildMeasurements();
   buildPlumberConcept(brass);
+  buildFinishedRoom();
   selectionBox = new THREE.BoxHelper(fixtureModels.get('toilet'), '#bd9659');
   selectionBox.material.transparent = true;
   selectionBox.material.opacity = 0.65;
@@ -625,22 +730,33 @@ function initialize3D() {
     if (hit) selectItem(hit.object.userData.fixture);
   });
   state.ready = true;
+  wireRoomNavigation();
   setDoorAngle(state.doorAngle);
   setView('perspective');
   renderer.setAnimationLoop(() => {
+    const delta = Math.min(frameClock.getDelta(), 0.05);
     if (state.view === 'plan' || document.hidden || !state.ready) return;
-    controls.update();
-    renderScenes();
+    if (state.view === 'finished') {
+      if (movement.size) {
+        advanceWalking(delta);
+        sceneDirty = true;
+      }
+    } else controls.update();
+    if (sceneDirty) renderScenes();
   });
 }
 
 function resize() {
+  sceneDirty = true;
   const panes = positionPanes();
   if (!renderer) return;
   const { width, height } = panes;
   if (width <= 0 || height <= 0) return;
   renderer.setSize(width, height, false);
   perspectiveCamera.aspect = panes.proposed.width / panes.proposed.height;
+  perspectiveCamera.fov = state.view === 'finished'
+    ? lensToVertical(state.roomLens, perspectiveCamera.aspect) : 42;
+  perspectiveCamera.far = state.view === 'finished' ? 400 : 1800;
   perspectiveCamera.updateProjectionMatrix();
   const aspect = perspectiveCamera.aspect;
   const halfHeight = Math.max(61, 70 / aspect);
@@ -649,6 +765,28 @@ function resize() {
   topCamera.top = halfHeight;
   topCamera.bottom = -halfHeight;
   topCamera.updateProjectionMatrix();
+  if (state.view === 'finished') {
+    if (!roomComposer) {
+      roomComposer = new EffectComposer(renderer);
+      roomComposer.renderToScreen = false;
+      roomComposer.renderTarget1.samples = Math.min(4, renderer.capabilities.maxSamples);
+      roomComposer.renderTarget2.samples = Math.min(4, renderer.capabilities.maxSamples);
+      roomComposer.addPass(new RenderPass(scene, perspectiveCamera));
+      const occlusion = new SSAOPass(scene, perspectiveCamera, 512, 512, 16);
+      occlusion.kernelRadius = 4;
+      occlusion.minDistance = 0.001;
+      occlusion.maxDistance = 0.02;
+      roomComposer.addPass(occlusion);
+      roomComposer.addPass(new OutputPass());
+      roomQuad = new FullScreenQuad(new THREE.ShaderMaterial({
+        uniforms: { tDiffuse: { value: null } },
+        vertexShader: 'varying vec2 vUv; void main(){vUv=uv;gl_Position=vec4(position.xy,0.0,1.0);}',
+        fragmentShader: 'uniform sampler2D tDiffuse; varying vec2 vUv; void main(){gl_FragColor=texture2D(tDiffuse,vUv);}',
+        depthTest: false, depthWrite: false, toneMapped: false,
+      }));
+    }
+    roomComposer.setSize(panes.proposed.width, panes.proposed.height);
+  }
   if (state.ready && state.view === 'perspective') fitPerspective();
 }
 
@@ -671,18 +809,78 @@ function fitPerspective() {
   camera.updateMatrixWorld();
 }
 
+function applyOverlayVisibility() {
+  const clean = ['finished', 'basin'].includes(state.view);
+  labels.visible = state.labels && !clean;
+  dimensionLines.visible = state.dimensions && !clean;
+  clearanceGroup.visible = state.clearances && !clean;
+  removedGroup.visible = state.removed && !clean;
+  plumberGroup.visible = state.plumber && !clean;
+  if (showerZone) showerZone.visible = state.view !== 'finished';
+  if (heaterDiagramPipes) heaterDiagramPipes.visible = state.view !== 'finished';
+  if (heaterFinishedPipes) heaterFinishedPipes.visible = state.view === 'finished';
+}
+
+function syncModeStatus() {
+  $('#plumber-toggle').textContent = `Plumber mode: ${state.plumber ? 'on' : 'off'}`;
+  $('#plumber-toggle').setAttribute('aria-pressed', String(state.plumber));
+  $('#mode-status').textContent = state.plumber
+    ? 'PLUMBER MODE ACTIVE / proposed service markers' : 'DESIGN VIEW / washbasin stays outside';
+  $('#mode-status').classList.toggle('active', state.plumber);
+}
+
 function setView(view) {
+  const wasFinished = state.view === 'finished';
+  const finished = view === 'finished';
+  if (finished && !state.ready) {
+    selectTab('finished');
+    showMessage('Finished-room 3D needs WebGL. Use the linked still renders, measured plan or plumber PDF instead.');
+    return;
+  }
+  movement.clear();
+  if (finished && !wasFinished) wallBeforeFinished = state.walls;
   state.view = view;
+  $('.stage').classList.toggle('finished-room', finished);
+  $('#room-controls').hidden = !finished;
+  if (finished) {
+    state.plumber = false;
+    syncModeStatus();
+    window.history.replaceState(null, '', '#finished');
+    selectTab('finished');
+    setWalls('full', false);
+    setDoorAngle(0);
+  } else if (wasFinished) {
+    setWalls(wallBeforeFinished, false);
+    window.history.replaceState(null, '', state.plumber ? '#plumber' : '#design');
+  }
+  for (const id of ['wall-mode', 'door-toggle', 'door-angle', 'dimensions', 'labels', 'clearances', 'old-wall']) {
+    $(`#${id}`).disabled = finished;
+  }
+  if (ceilingGroup) {
+    ceilingGroup.visible = finished;
+    ambientLight.intensity = finished ? 0.3 : 1.6;
+    keyLight.intensity = finished ? 0 : 2.4;
+    fillLight.intensity = finished ? 0 : 0.7;
+    scene.environmentIntensity = finished ? 0.45 : 0.6;
+    if (finished) roomLight.shadow.needsUpdate = true;
+    renderer.toneMappingExposure = finished ? 1 : 0.95;
+  }
+  if (outsideBasinDesign) outsideBasinDesign.visible = state.plumber || view === 'basin';
   const plan = view === 'plan';
   $('#plan-host').hidden = !plan;
   $('#canvas-host').hidden = plan;
   $('#viewer-error').hidden = plan || !state.error;
   $('#save-image').disabled = plan || !state.ready;
-  $('#view-caption').textContent = state.view === 'basin'
+  $('#save-image').textContent = finished ? 'Save room photo' : 'Save image';
+  $('#view-caption').textContent = finished
+    ? 'FINISHED-ROOM VISUALIZATION / PROPOSED MATERIALS'
+    : state.view === 'basin'
     ? 'OUTSIDE WASHBASIN / PROPOSED SIZES / VERIFY ON SITE'
     : state.plumber ? 'PLUMBER P1 / PROPOSED POINTS / SURVEY REQUIRED'
     : plan ? 'DIMENSIONED PLAN / INSIDE FACE MEASUREMENTS' : 'PROPOSED COMBINED WET ROOM';
-  $('#viewer-help').innerHTML = plan
+  $('#viewer-help').innerHTML = finished
+    ? '<strong>Look around your room.</strong><span>Drag to look &middot; W A S D / arrows to move &middot; Wheel to zoom</span>'
+    : plan
     ? '<strong>Every inch matters.</strong><span>Back wall at top / retained entrance at bottom right</span>'
     : '<strong>Explore your combined room.</strong><span>Drag to rotate &middot; Scroll to zoom &middot; Click a fixture</span>';
   $$('[data-view]').forEach(button => {
@@ -691,9 +889,7 @@ function setView(view) {
     button.setAttribute('aria-pressed', String(active));
   });
   positionPanes();
-  labels.visible = state.labels && view !== 'basin';
-  dimensionLines.visible = state.dimensions && view !== 'basin';
-  plumberGroup.visible = state.plumber && view !== 'basin';
+  applyOverlayVisibility();
   if (!state.ready || plan) return;
   controls.enabled = false;
   controls.dispose();
@@ -714,6 +910,7 @@ function setView(view) {
     activeCamera.position.set(-65, state.walls === 'full' ? 180 : 110, 145);
   }
   controls = new OrbitControls(activeCamera, renderer.domElement);
+  controls.addEventListener('change', () => { sceneDirty = true; });
   controls.target.copy(target);
   controls.enableDamping = true;
   controls.dampingFactor = 0.12;
@@ -723,14 +920,17 @@ function setView(view) {
   controls.maxZoom = 5;
   controls.enableRotate = view !== 'top';
   controls.maxPolarAngle = Math.PI / 2 - 0.025;
-  controls.update();
+  controls.enabled = !finished;
+  if (finished) setRoomViewpoint('entrance');
+  else controls.update();
   if (state.selected) selectItem(state.selected);
   resize();
   renderScenes();
 }
 
-function setWalls(value) {
+function setWalls(value, resetCamera = true) {
   state.walls = value;
+  $('#wall-mode').value = value;
   $('#wall-caption').textContent = value === 'full' ? 'Full height: 144 in / ceiling omitted' : value === 'hidden' ? 'Shell hidden / translucent doors' : 'Cutaway / translucent doors for viewing';
   if (!state.ready) return;
   fullWalls.visible = value === 'full';
@@ -745,7 +945,7 @@ function setWalls(value) {
     leaf.castShadow = value === 'full';
   }
   heightDimension.visible = value === 'full';
-  if (state.view === 'perspective') setView('perspective');
+  if (resetCamera && state.view === 'perspective') setView('perspective');
 }
 
 function toggleDoor() {
@@ -753,7 +953,13 @@ function toggleDoor() {
 }
 
 function setDoorAngle(angle) {
+  if (state.view === 'finished' && angle !== 0) {
+    showMessage('Finished-room viewpoints use the door closed. Return to 3D view to inspect its swing.');
+    $('#door-angle').value = String(state.doorAngle);
+    return;
+  }
   doorTip(DOORS.bathroom, angle);
+  sceneDirty = true;
   state.doorAngle = angle;
   state.doorOpen = angle > 0;
   $('#door-toggle').textContent = `Door: ${state.doorOpen ? 'open' : 'closed'}`;
@@ -765,11 +971,9 @@ function setDoorAngle(angle) {
 }
 
 function setPlumber(enabled) {
+  if (state.view === 'finished') setView('perspective');
   state.plumber = enabled;
-  $('#plumber-toggle').textContent = `Plumber mode: ${enabled ? 'on' : 'off'}`;
-  $('#plumber-toggle').setAttribute('aria-pressed', String(enabled));
-  $('#mode-status').textContent = enabled ? 'PLUMBER MODE ACTIVE / proposed service markers' : 'DESIGN VIEW / washbasin stays outside';
-  $('#mode-status').classList.toggle('active', enabled);
+  syncModeStatus();
   window.history.replaceState(null, '', enabled ? '#plumber' : '#design');
   if (enabled) selectTab('plumber');
   else selectTab('layout');
@@ -777,6 +981,94 @@ function setPlumber(enabled) {
   if (outsideBasinDesign) outsideBasinDesign.visible = enabled;
   refreshPlan();
   setView(enabled ? 'perspective' : state.view === 'basin' ? 'perspective' : state.view);
+}
+
+function applyRoomLook() {
+  sceneDirty = true;
+  roomPitch = Math.max(-1.35, Math.min(1.35, roomPitch));
+  perspectiveCamera.rotation.set(roomPitch, roomYaw, 0, 'YXZ');
+  perspectiveCamera.updateMatrixWorld();
+}
+
+function setRoomViewpoint(name) {
+  const pose = roomPose(name);
+  state.roomViewpoint = name;
+  perspectiveCamera.position.set(pose.x, pose.y, -pose.d);
+  roomYaw = pose.yaw;
+  roomPitch = pose.pitch;
+  state.roomLens = DEFAULT_LENS;
+  applyRoomLook();
+  resize();
+  $('#room-position').textContent = `${ROOM_VIEWS[name].label} / eye level ${EYE_HEIGHT} in`;
+  $('#room-viewpoint').value = name;
+  $$('[data-room-view]').forEach(button => {
+    const active = button.dataset.roomView === name;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+}
+
+function changeRoomLens(delta) {
+  state.roomLens = Math.max(50, Math.min(90, state.roomLens + delta));
+  resize();
+}
+
+function advanceWalking(delta) {
+  const forward = Number(movement.has('forward')) - Number(movement.has('back'));
+  const right = Number(movement.has('right')) - Number(movement.has('left'));
+  if (!forward && !right) return;
+  const step = 12 * delta / Math.hypot(forward, right);
+  const next = moveCamera({ x: perspectiveCamera.position.x, d: -perspectiveCamera.position.z },
+    (-Math.sin(roomYaw) * forward + Math.cos(roomYaw) * right) * step,
+    (Math.cos(roomYaw) * forward + Math.sin(roomYaw) * right) * step, state.doorAngle);
+  perspectiveCamera.position.set(next.x, EYE_HEIGHT, -next.d);
+}
+
+function wireRoomNavigation() {
+  let pointer = null;
+  const canvas = renderer.domElement;
+  canvas.addEventListener('pointerdown', event => {
+    if (state.view !== 'finished' || event.button > 0) return;
+    pointer = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    canvas.setPointerCapture(event.pointerId);
+  });
+  canvas.addEventListener('pointermove', event => {
+    if (state.view !== 'finished' || !pointer || pointer.id !== event.pointerId) return;
+    roomYaw -= (event.clientX - pointer.x) * 0.004;
+    roomPitch -= (event.clientY - pointer.y) * 0.003;
+    pointer.x = event.clientX;
+    pointer.y = event.clientY;
+    applyRoomLook();
+  });
+  const release = event => { if (pointer?.id === event.pointerId) pointer = null; };
+  canvas.addEventListener('pointerup', release);
+  canvas.addEventListener('pointercancel', release);
+  canvas.addEventListener('wheel', event => {
+    if (state.view !== 'finished') return;
+    event.preventDefault();
+    changeRoomLens(Math.sign(event.deltaY) * 3);
+  }, { passive: false });
+  const keyActions = { w: 'forward', arrowup: 'forward', s: 'back', arrowdown: 'back', a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right' };
+  document.addEventListener('keyup', event => {
+    const action = keyActions[event.key.toLowerCase()];
+    if (action) movement.delete(action);
+  });
+  for (const button of $$('[data-move]')) {
+    button.addEventListener('pointerdown', event => {
+      if (state.view !== 'finished') return;
+      event.preventDefault();
+      movement.add(button.dataset.move);
+      button.setPointerCapture(event.pointerId);
+    });
+    for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+      button.addEventListener(type, () => movement.delete(button.dataset.move));
+    }
+  }
+  window.addEventListener('blur', () => movement.clear());
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) movement.clear();
+    else sceneDirty = true;
+  });
 }
 
 function selectTab(name) {
@@ -816,8 +1108,15 @@ function showViewerError(error) {
 }
 
 function wireControls() {
+  for (const type of ['click', 'input', 'change']) {
+    document.addEventListener(type, () => { sceneDirty = true; });
+  }
   $$('.tab').forEach(button => button.addEventListener('click', () => {
     if (button.dataset.tab === 'plumber') setPlumber(true);
+    else if (button.dataset.tab === 'finished') {
+      setView('finished');
+      $('.stage').scrollIntoView({ block: 'start' });
+    }
     else selectTab(button.dataset.tab);
   }));
   $$('[data-view]').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
@@ -842,19 +1141,37 @@ function wireControls() {
     state.tileLine = event.target.checked;
     tileGuide.visible = state.tileLine;
   });
-  $('#reset-view').addEventListener('click', () => setView('perspective'));
+  $('#reset-view').addEventListener('click', () => {
+    if (state.view === 'finished') setRoomViewpoint('entrance');
+    else setView('perspective');
+  });
+  $('#enter-finished').addEventListener('click', () => {
+    setView('finished');
+    $('.stage').scrollIntoView({ block: 'start' });
+  });
+  $('#room-viewpoint').addEventListener('change', event => setRoomViewpoint(event.target.value));
+  $$('[data-room-view]').forEach(button => button.addEventListener('click', () => {
+    if (state.view !== 'finished') setView('finished');
+    setRoomViewpoint(button.dataset.roomView);
+    $('.stage').scrollIntoView({ block: 'start' });
+  }));
+  $('#room-zoom-in').addEventListener('click', () => changeRoomLens(-4));
+  $('#room-zoom-out').addEventListener('click', () => changeRoomLens(4));
+  $('#room-finish').addEventListener('change', event => {
+    $(`[data-finish="${event.target.value}"]`).click();
+  });
   for (const [id, key, group] of [['dimensions', 'dimensions', dimensionLines], ['labels', 'labels', labels], ['clearances', 'clearances', clearanceGroup], ['old-wall', 'removed', removedGroup]]) {
     $(`#${id}`).addEventListener('change', event => {
       state[key] = event.target.checked;
       group.visible = state[key];
-      if (key === 'labels') group.visible = state.labels && state.view !== 'basin';
-      if (key === 'dimensions') group.visible = state.dimensions && state.view !== 'basin';
+      applyOverlayVisibility();
       if (key === 'labels') plumberLabels.visible = state.labels;
       refreshPlan();
     });
   }
   $$('[data-finish]').forEach(button => button.addEventListener('click', () => {
     state.finish = button.dataset.finish;
+    $('#room-finish').value = state.finish;
     $$('[data-finish]').forEach(swatch => {
       const active = swatch === button;
       swatch.classList.toggle('active', active);
@@ -874,35 +1191,56 @@ function wireControls() {
     }
     renderScenes();
     const image = document.createElement('canvas');
-    image.width = renderer.domElement.width;
-    image.height = renderer.domElement.height;
+    const panes = getViewports();
+    const pane = panes.proposed;
+    const pixelRatio = renderer.domElement.width / panes.width;
+    const finished = state.view === 'finished';
+    image.width = finished ? Math.round(pane.width * pixelRatio) : renderer.domElement.width;
+    image.height = finished ? Math.round(pane.height * pixelRatio) : renderer.domElement.height;
     const context = image.getContext('2d');
     if (!context) {
       console.error('Bathroom viewer: image export could not create a drawing context.');
       showMessage('Image export could not start. Use Download plan instead.');
       return;
     }
-    context.drawImage(renderer.domElement, 0, 0);
-    const panes = getViewports();
-    const scale = image.width / panes.width;
-    context.scale(scale, scale);
+    if (finished) {
+      context.drawImage(renderer.domElement, pane.left * pixelRatio, pane.top * pixelRatio,
+        pane.width * pixelRatio, pane.height * pixelRatio, 0, 0, image.width, image.height);
+    } else {
+      context.drawImage(renderer.domElement, 0, 0);
+    }
+    context.scale(pixelRatio, pixelRatio);
     context.fillStyle = '#263e35';
     context.font = '600 13px "Segoe UI", Arial, sans-serif';
-    const pane = panes.proposed;
-    context.fillText(`COMBINED BATHROOM / BASIN OUTSIDE${state.plumber ? ' / PLUMBER P1' : ''}`,
+    if (!finished) context.fillText(`COMBINED BATHROOM / BASIN OUTSIDE${state.plumber ? ' / PLUMBER P1' : ''}`,
       pane.left + 8, pane.top - 22, pane.width - 16);
     context.font = '10px "Segoe UI", Arial, sans-serif';
-    context.fillText('CONCEPT ONLY / verify actual fixtures, door sweep and site conditions before construction.', 18, panes.height - 20, panes.width - 36);
+    if (finished) {
+      context.fillStyle = 'rgba(255,253,245,.87)';
+      context.fillRect(0, pane.height - 25, pane.width, 25);
+      context.fillStyle = '#304536';
+      context.fillText('PROPOSED VISUALIZATION / materials and products illustrative', 10, pane.height - 10, pane.width - 20);
+    } else {
+      context.fillText('CONCEPT ONLY / verify actual fixtures, door sweep and site conditions before construction.', 18, panes.height - 20, panes.width - 36);
+    }
     image.toBlob(blob => {
       if (!blob) {
         console.error('Bathroom viewer: PNG export returned no image.');
         showMessage('Image export failed. Try another browser or use Download plan.');
         return;
       }
-      download(blob, `Bathroom-${state.view}.png`);
+      download(blob, finished ? `Bathroom-finished-${state.roomViewpoint}.png` : `Bathroom-${state.view}.png`);
     }, 'image/png');
   });
   document.addEventListener('keydown', event => {
+    const keyActions = { w: 'forward', arrowup: 'forward', s: 'back', arrowdown: 'back', a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right' };
+    const action = keyActions[event.key.toLowerCase()];
+    if (state.view === 'finished' && action && !event.ctrlKey && !event.metaKey && !event.altKey
+      && !['INPUT', 'SELECT', 'TEXTAREA', 'SUMMARY'].includes(event.target.tagName)) {
+      event.preventDefault();
+      movement.add(action);
+      return;
+    }
     if (event.ctrlKey || event.metaKey || event.altKey || ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON', 'SUMMARY'].includes(event.target.tagName)) return;
     switch (event.key.toLowerCase()) {
       case 'h': setView('perspective'); break;
@@ -927,11 +1265,13 @@ try {
   wireControls();
   initialize3D();
   if (window.location.hash === '#plumber') setPlumber(true);
+  else if (window.location.hash === '#finished') setView('finished');
 } catch (error) {
   showViewerError(error instanceof Error ? error : new Error(String(error)));
 }
 window.addEventListener('hashchange', () => {
   if (window.location.hash === '#plumber') setPlumber(true);
+  else if (window.location.hash === '#finished') setView('finished');
   else if (window.location.hash === '#design') setPlumber(false);
 });
 
@@ -949,6 +1289,8 @@ Object.defineProperty(window, 'bathroomViewer', {
           outsideBasin: Boolean(fixtureModels.get('basin')?.visible),
           plumber: plumberGroup.visible, tileGuide: plumberGroup.visible && tileGuide.visible,
           outsideBasinDesign: Boolean(outsideBasinDesign?.visible),
+          ceiling: Boolean(ceilingGroup?.visible),
+          showerPlanningOverlay: Boolean(showerZone?.visible),
         },
         doorAngleDegrees: doorPivot ? THREE.MathUtils.radToDeg(doorPivot.rotation.y) : null,
         doorTips: doorPivot ? (() => {
@@ -962,6 +1304,16 @@ Object.defineProperty(window, 'bathroomViewer', {
           geyserInstalled: PLUMBER_SITE.geyserInstalled, geyserPointsInstalled: PLUMBER_SITE.geyserPointsInstalled,
           wcOutletVerified: PLUMBER_SITE.wcOutletVerified, outsideBasin: PLUMBER_SITE.outsideBasin,
           servicePoints: PLUMBER_SITE.servicePoints, quantities,
+        },
+        experience: {
+          eyeHeight: EYE_HEIGHT, lensHorizontal: state.roomLens,
+          position: perspectiveCamera ? { x: perspectiveCamera.position.x, d: -perspectiveCamera.position.z, y: perspectiveCamera.position.y } : null,
+          yaw: roomYaw, pitch: roomPitch, movement: [...movement],
+          navigationValid: state.view === 'finished' ? canPlaceCamera({ x: perspectiveCamera.position.x, d: -perspectiveCamera.position.z }, state.doorAngle) : null,
+          ceilingUnderside: ceilingGroup ? new THREE.Box3().setFromObject(ceilingGroup.getObjectByName('finished-ceiling')).min.y : null,
+          tileMaxHeight: fullWalls ? Math.max(...fullWalls.children.filter(object => object.userData.tileTop !== undefined).map(object => object.userData.tileTop)) : null,
+          proceduralTextures: true,
+          framesRendered,
         },
         viewports: getViewports(),
         fixtureScreenPoints: activeCamera && renderer ? Object.fromEntries([...fixtureModels].map(([id, object]) => {
